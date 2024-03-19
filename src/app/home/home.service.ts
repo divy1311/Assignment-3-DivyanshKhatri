@@ -1,5 +1,5 @@
 import { Injectable, OnInit } from '@angular/core';
-import { Observable, of, tap } from 'rxjs';
+import { Observable, of, switchMap, take, tap } from 'rxjs';
 import { Stock } from '../models/stock';
 import { HttpClient } from '@angular/common/http';
 import { Quote } from '../models/quote';
@@ -19,16 +19,27 @@ export class HomeService {
   constructor(private http: HttpClient, private dataService: DataService) {}
 
   search(stock: string): Observable<Stock> {
-    let url = 'http://localhost:3000/company?ticker=' + stock;
     this.dataService.setTicker(stock);
-    if(this.dataService.getStockData() !== undefined) {
-      return of(this.dataService.getStockData());
-    }
-    return this.http.get<Stock>(url).pipe(tap(data => {
-      console.log("Stock" + JSON.stringify(data));
-      this.dataService.setStockData(data);
-      console.log("Stock Data" + JSON.stringify(this.dataService.getStockData()));
-    }));
+    return this.dataService.getStockData().pipe(
+      take(1),
+      switchMap(data => {
+        console.log(data);
+        if (data !== null && data !== undefined && Object.keys(data).length !== 0) {
+          // If data is not null or undefined and not an empty object, return it
+          console.log("fetched from cache");
+          return of(data);
+        } else {
+          // If data is null or undefined, make the HTTP request
+          let url = 'http://localhost:3000/company?ticker=' + stock;
+          return this.http.get<Stock>(url).pipe(
+            tap(data => {
+              console.log("Fetched from server");
+              this.dataService.setStockData(data)
+            })
+          );
+        }
+      })
+    );
   }
 
   chart(ticker: string, singleDay: string): Observable<any> {

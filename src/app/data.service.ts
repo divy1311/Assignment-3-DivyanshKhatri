@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { Stock } from './models/stock';
 import { Quote } from './models/quote';
+import { Observable, of } from 'rxjs';
 
 @Injectable({
   providedIn: 'root',
@@ -16,8 +17,8 @@ export class DataService {
     this.stockData = data;
   }
 
-  getStockData(): Stock {
-    return this.stockData;
+  getStockData(): Observable<Stock> {
+    return of(this.stockData);
   }
 
   setQuote(quote: Quote): void {

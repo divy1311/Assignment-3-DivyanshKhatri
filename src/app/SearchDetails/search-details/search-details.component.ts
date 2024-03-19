@@ -18,6 +18,7 @@ import HC_SMA from 'highcharts/indicators/indicators';
 import HC_volume from 'highcharts/indicators/volume-by-price';
 import * as HighchartsHighStock from 'highcharts/highstock';
 import { Alert } from '../../models/alert';
+import { Sentiments } from '../../models/sentiments';
 
 HC_SMA(HighchartsHighStock);
 HC_volume(HighchartsHighStock);
@@ -74,6 +75,12 @@ export class SearchDetailsComponent implements OnInit, AfterViewInit {
 
   active = 1;
 
+  peers: String[] = [];
+
+  newsValues: News[] = [];
+
+  sentimentsValues: Sentiments[] = [];
+
   sentiments: number[] = [0, 0, 0, 0, 0, 0];
 
   Highcharts: typeof HighchartsHighStock = HighchartsHighStock;
@@ -119,7 +126,6 @@ export class SearchDetailsComponent implements OnInit, AfterViewInit {
   }
 
   ngOnInit() {
-    console.log('Reached here');
     this.route.params.forEach((param) => {
       this.formControl.setValue(param['ticker']);
       this.search();
@@ -156,7 +162,6 @@ export class SearchDetailsComponent implements OnInit, AfterViewInit {
 
   search(): void {
     let ticker = this.formControl.value;
-    console.log("ticker value " + ticker);
     if (ticker === '') {
       this.alerts.push({
         type: 'danger',
@@ -212,13 +217,13 @@ export class SearchDetailsComponent implements OnInit, AfterViewInit {
     });
 
     this.homeService.companyPeers(ticker).subscribe((data) => {
-      this.stock.peers = data.filter((peer) => {
+      this.peers = data.filter((peer) => {
         return !peer.includes('.');
       });
     });
 
     this.homeService.news(ticker).subscribe((data) => {
-      this.stock.news = data
+      this.newsValues = data
         .filter((n) => {
           return (
             n.summary &&
@@ -235,12 +240,10 @@ export class SearchDetailsComponent implements OnInit, AfterViewInit {
           );
         })
         .slice(0, 20);
-      console.log(this.stock.news);
     });
 
     this.homeService.sentiments(ticker).subscribe((data) => {
-      this.stock.sentiments = data;
-      console.log(this.stock.sentiments);
+      this.sentimentsValues = data;
       data.forEach((s) => {
         if (s.change < 0) {
           this.sentiments[5] += s.change;
@@ -258,8 +261,6 @@ export class SearchDetailsComponent implements OnInit, AfterViewInit {
         this.sentiments[0] += s.mspr;
       });
     });
-    console.log(this.sentiments);
-
     this.cdr.detectChanges();
   }
 

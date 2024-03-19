@@ -14,7 +14,7 @@ export interface Stock {
   phone: string;
   weburl: string;
   finnhubIndustry: string;
-  peers: string[];
-  news: News[];
-  sentiments: Sentiments[];
+//   peers: string[];
+//   news: News[];
+//   sentiments: Sentiments[];
 }

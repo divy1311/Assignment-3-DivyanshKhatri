@@ -144,7 +144,7 @@
                   <tr>
                     <td class="text-center">
                       <p style="font-weight: bold;">Company Peers:</p>
-                      <span *ngFor="let peer of this.stock.peers">
+                      <span *ngFor="let peer of this.peers">
                         <a [routerLink]="['/search', peer]">{{peer}},</a>
                       </span>
                     </td>
@@ -165,7 +165,7 @@
           style="text-align: center; border: 0; background-color: transparent; color: gray; font-weight: 600; font-size: 15px"
           ngbNavLink>Top News</button>
         <ng-template ngbNavContent>
-          <div *ngIf="!isEmptyObject(stock)" class="d-flex row justify-content-center"
+          <div *ngIf="!isEmptyObject(newsValues)" class="d-flex row justify-content-center"
             style="width: 70%; margin: auto;">
             <ng-template #content let-modal>
               <div class="modal-header d-flex justify-content-between align-items-center w-100">
@@ -193,7 +193,7 @@
                 </div>
               </div>
             </ng-template>
-            <ng-container *ngFor="let news of stock.news; index as i">
+            <ng-container *ngFor="let news of newsValues; index as i">
               <div class="row" *ngIf="i % 2 === 0">
                 <div class="col border mx-2 my-3 rounded" style="height: 120px;">
                   <div (click)="open(content); viewCard(news)" class="row h-100 align-items-center">
@@ -203,17 +203,17 @@
                     <p class="col-9">{{news.headline}}</p>
                   </div>
                 </div>
-                <div class="col border mx-2 my-3 rounded" *ngIf="stock.news[i + 1]" style="height: 120px;">
-                  <div (click)="open(content); viewCard(stock.news[i+1])" data-toggle="modal" data-target="#myModal"
+                <div class="col border mx-2 my-3 rounded" *ngIf="newsValues[i + 1]" style="height: 120px;">
+                  <div (click)="open(content); viewCard(newsValues[i+1])" data-toggle="modal" data-target="#myModal"
                     class="row h-100 align-items-center">
                     <div class="col-3 h-75 rounded">
-                      <img class="img-fluid h-100 w-100 rounded" src="{{stock.news[i + 1].image}}"
+                      <img class="img-fluid h-100 w-100 rounded" src="{{newsValues[i + 1].image}}"
                         style="object-fit: cover;">
                     </div>
-                    <p class="col-9">{{stock.news[i + 1].headline}}</p>
+                    <p class="col-9">{{newsValues[i + 1].headline}}</p>
                   </div>
                 </div>
-                <div class="col mx-2 my-3" *ngIf="!stock.news[i + 1]"></div>
+                <div class="col mx-2 my-3" *ngIf="!newsValues[i + 1]"></div>
               </div>
             </ng-container>
           </div>
