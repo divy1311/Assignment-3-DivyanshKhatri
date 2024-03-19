@@ -1,0 +1,17 @@
+<div ngbNav class="my-auto nav-pills justify-content-between py-2">
+  <ng-container ngbNavItem>
+    <span class = "align-self-center ms-5 heading">Stock Search</span>
+  </ng-container>
+  <div class = "nav-items-right me-5" id = "actions">
+    <ng-container ngbNavItem>
+      <a ngbNavLink class="nav-button" [routerLink]=" isTickerPresent ? ['/search', ticker] : ['/search', 'home']" (click) = "checkTicker()" routerLinkActive="active">Search</a>
+    </ng-container>
+    <ng-container ngbNavItem>
+      <a ngbNavLink class = "nav-button" routerLink="/watchlist" (click) = "saveTickerValue()" routerLinkActive="active">Watchlist</a>
+    </ng-container>
+    <ng-container ngbNavItem>
+      <a ngbNavLink class = "nav-button" routerLink="/portfolio" (click) = "saveTickerValue()" routerLinkActive="active">Portfolio</a>
+    </ng-container>
+  </div>
+</div>
+<router-outlet />

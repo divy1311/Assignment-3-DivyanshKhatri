@@ -1,0 +1,29 @@
+.nav-button {
+  background-color: rgb(34, 30, 153);
+  border: 2px transparent solid;
+  color: white;
+}
+
+.nav-button:active, .nav-button.active {
+  border: 2px white solid;
+  background-color: rgb(34, 30, 153);
+}
+
+.nav-button:visited {
+  border: 2px white solid;
+  background-color: rgb(34, 30, 153);
+}
+
+.nav-items-right {
+  display: flex;
+}
+
+.nav-pills {
+  background-color: rgb(34, 30, 153);
+  /* position: relative; */
+}
+
+.heading {
+  color: white;
+  font-size: 25px;
+}

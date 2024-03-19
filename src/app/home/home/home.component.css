@@ -1,0 +1,32 @@
+input.input-no-focus:focus {
+  outline: none !important;
+  box-shadow: none !important;
+  border-color: transparent !important;
+}
+.input-group-order {
+  border: 3px solid rgb(34, 30, 153);
+  border-radius: 30px;
+  padding-left: 20px;
+}
+
+button:focus {
+  outline: none !important;
+  box-shadow: none !important;
+  border-color: transparent !important;
+}
+
+li.active {
+  border-bottom: 2px solid rgb(34, 30, 153);
+}
+
+.button-active {
+  color: rgb(34, 30, 153) !important;
+}
+
+.text-green {
+  color: green;
+}
+
+.text-red {
+  color: red;
+}

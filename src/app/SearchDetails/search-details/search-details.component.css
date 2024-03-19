@@ -1,0 +1,58 @@
+input.input-no-focus:focus {
+  outline: none !important;
+  box-shadow: none !important;
+  border-color: transparent !important;
+}
+.input-group-order {
+  border: 3px solid rgb(34, 30, 153);
+  border-radius: 30px;
+  padding-left: 20px;
+}
+
+button:focus {
+  outline: none !important;
+  box-shadow: none !important;
+  border-color: transparent !important;
+}
+
+li.active {
+  border-bottom: 2px solid rgb(34, 30, 153);
+}
+
+.button-active {
+  color: rgb(34, 30, 153) !important;
+}
+
+.text-green {
+  color: green;
+}
+
+.text-red {
+  color: red;
+}
+
+.border-purple {
+  border-color: purple !important;
+}
+
+.custom-border {
+  border: 1px solid #dee2e6 !important; /* This color is the default border color in Bootstrap */
+}
+
+.no-style {
+  background: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.blue-text {
+  color: blue !important;
+  border-bottom: 1px solid blue !important;
+  background: transparent !important;
+}
+
+.custom-line-height {
+  line-height: 1; /* Adjust this value to fit your needs */
+}
