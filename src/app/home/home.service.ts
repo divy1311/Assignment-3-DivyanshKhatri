@@ -23,17 +23,14 @@ export class HomeService {
     return this.dataService.getStockData().pipe(
       take(1),
       switchMap(data => {
-        console.log(data);
         if (data !== null && data !== undefined && Object.keys(data).length !== 0) {
-          // If data is not null or undefined and not an empty object, return it
-          console.log("fetched from cache");
+          console.log("fetched from cache: Stock Data");
           return of(data);
         } else {
-          // If data is null or undefined, make the HTTP request
           let url = 'http://localhost:3000/company?ticker=' + stock;
           return this.http.get<Stock>(url).pipe(
             tap(data => {
-              console.log("Fetched from server");
+              console.log("Fetched from server: Stock Data");
               this.dataService.setStockData(data)
             })
           );
@@ -43,13 +40,43 @@ export class HomeService {
   }
 
   chart(ticker: string, singleDay: string): Observable<any> {
-    let url = 'http://localhost:3000/chartData?ticker=' + ticker + '&singleDay=' + singleDay;
-    return this.http.get<any>(url);
+    return this.dataService.getChart().pipe(
+      take(1),
+      switchMap(data => {
+        if (data !== null && data !== undefined && Object.keys(data).length !== 0) {
+          console.log("fetched from cache: Chart");
+          return of(data);
+        } else {
+          let url = 'http://localhost:3000/chartData?ticker=' + ticker + '&singleDay=' + singleDay;
+          return this.http.get<any>(url).pipe(
+            tap(data => {
+              console.log("Fetched from server: Chart");
+              this.dataService.setChart(data)
+            })
+          );
+        }
+      })
+    );
   }
 
   quote(ticker: string): Observable<Quote> {
-    let url = 'http://localhost:3000/company/quote?ticker=' + ticker;
-    return this.http.get<Quote>(url);
+    return this.dataService.getQuote().pipe(
+      take(1),
+      switchMap(data => {
+        if (data !== null && data !== undefined && Object.keys(data).length !== 0) {
+          console.log("fetched from cache: Quote");
+          return of(data);
+        } else {
+          let url = 'http://localhost:3000/company/quote?ticker=' + ticker;
+          return this.http.get<Quote>(url).pipe(
+            tap(data => {
+              console.log("Fetched from server: Quote");
+              this.dataService.setQuote(data)
+            })
+          );
+        }
+      })
+    );
   }
 
   stockNames(ticker: string): Observable<StockDetail[]> {
@@ -58,27 +85,102 @@ export class HomeService {
   }
 
   companyPeers(ticker: string): Observable<string[]> {
-    let url = "http://localhost:3000/company/peers?ticker=" + ticker;
-    return this.http.get<string[]>(url);
+    return this.dataService.getPeers().pipe(
+      take(1),
+      switchMap(data => {
+        if (data !== null && data !== undefined && data.length !== 0) {
+          console.log("fetched from cache: Peers");
+          return of(data);
+        } else {
+          let url = 'http://localhost:3000/company/peers?ticker=' + ticker;
+          return this.http.get<string[]>(url).pipe(
+            tap(data => {
+              console.log("Fetched from server: Peers");
+              this.dataService.setPeers(data)
+            })
+          );
+        }
+      })
+    );
   }
 
   news(ticker: string): Observable<News[]> {
-    let url = "http://localhost:3000/company/news?ticker=" + ticker;
-    return this.http.get<News[]>(url);
+    return this.dataService.getNews().pipe(
+      take(1),
+      switchMap(data => {
+        if (data !== null && data !== undefined && data.length !== 0) {
+          console.log("fetched from cache: News");
+          return of(data);
+        } else {
+          let url = "http://localhost:3000/company/news?ticker=" + ticker;
+          return this.http.get<News[]>(url).pipe(
+            tap(data => {
+              console.log("Fetched from server: News");
+              this.dataService.setNews(data)
+            })
+          );
+        }
+      })
+    );
   }
 
   sentiments(ticker: string): Observable<Sentiments[]> {
-    let url = "http://localhost:3000/company/sentiments?ticker=" + ticker;
-    return this.http.get<Sentiments[]>(url);
+    return this.dataService.getSentiments().pipe(
+      take(1),
+      switchMap(data => {
+        if (data !== null && data !== undefined && data.length !== 0) {
+          console.log("fetched from cache: Sentiments");
+          return of(data);
+        } else {
+          let url = "http://localhost:3000/company/sentiments?ticker=" + ticker;
+          return this.http.get<Sentiments[]>(url).pipe(
+            tap(data => {
+              console.log("Fetched from server: Sentiments");
+              this.dataService.setSentiments(data)
+            })
+          );
+        }
+      })
+    );
   }
 
   earnings(ticker: string): Observable<Earnings[]> {
-    let url = "http://localhost:3000/company/earnings?ticker=" + ticker;
-    return this.http.get<Earnings[]>(url);
+    return this.dataService.getEarnings().pipe(
+      take(1),
+      switchMap(data => {
+        if (data !== null && data !== undefined && data.length !== 0) {
+          console.log("fetched from cache: Earnings");
+          return of(data);
+        } else {
+          let url = "http://localhost:3000/company/earnings?ticker=" + ticker;
+          return this.http.get<Earnings[]>(url).pipe(
+            tap(data => {
+              console.log("Fetched from server: Earnings");
+              this.dataService.setEarnings(data)
+            })
+          );
+        }
+      })
+    );
   }
 
   trends(ticker: string): Observable<Trends[]> {
-    let url = "http://localhost:3000/company/trends?ticker=" + ticker;
-    return this.http.get<Trends[]>(url);
+    return this.dataService.getTrends().pipe(
+      take(1),
+      switchMap(data => {
+        if (data !== null && data !== undefined && data.length !== 0) {
+          console.log("fetched from cache: Trends");
+          return of(data);
+        } else {
+          let url = "http://localhost:3000/company/trends?ticker=" + ticker;
+          return this.http.get<Trends[]>(url).pipe(
+            tap(data => {
+              console.log("Fetched from server: Trends");
+              this.dataService.setTrends(data)
+            })
+          );
+        }
+      })
+    );
   }
 }
