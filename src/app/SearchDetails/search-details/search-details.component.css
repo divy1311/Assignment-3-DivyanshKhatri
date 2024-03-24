@@ -54,5 +54,10 @@ li.active {
 }
 
 .custom-line-height {
-  line-height: 1; /* Adjust this value to fit your needs */
+  line-height: 1;
+}
+
+a > i.fa-brands {
+  color: inherit;
+  text-decoration: none;
 }

@@ -36,7 +36,7 @@
     </div>
   </div>
 </form>
-<div *ngIf="!isEmptyObject(stock) && alerts.length == 0" class="row my-5">
+<div *ngIf="!isEmptyObject(stock) && alerts.length === 0 && alerts1.length === 0" class="row my-5">
   <div class="col-4">
     <table class="table d-flex justify-content-end">
       <tbody>
@@ -57,12 +57,77 @@
             </p>
           </td>
         </tr>
+        <tr>
+          <td class="text-center border-bottom-0 py-2">
+            <div class="row">
+              <div class="col" [ngClass]="{'d-flex justify-content-end': displaySell, 'd-flex justify-content-center': !displaySell}">
+                <button type="button" class="btn btn-success" (click)="open1(buyModal)">Buy</button>
+              </div>
+              <ng-template #buyModal let-modal>
+                <div class="modal-header d-flex justify-content-between">
+                  <h4 class="modal-title" id="modal-buy">{{stock.ticker}}</h4>
+                  <button type="button" class="no-style" aria-label="Close" (click)="modal.dismiss('Cross click')">
+                    <span class="blue-text" aria-hidden="true">&times;</span>
+                  </button>
+                </div>
+                <div class="modal-body">
+                  <p>Current Price: {{quote.c}}</p>
+                  <p>Money in Wallet: ${{this.wallet}}</p>
+                  <div class="row align-items-center">
+                    <div class="col-auto">
+                      <span>Quantity: </span>
+                    </div>
+                    <div class="col">
+                      <input type="number" class="form-control" placeholder="Enter Quantity" [(ngModel)]="quantity" (keypress)="numberOnly($event)" />
+                    </div>
+                  </div>
+                </div>
+                <div class="modal-footer d-flex justify-content-between">
+                  <p>Total: {{quantity*quote.c}}</p>
+                  <button type="button" class="btn btn-success" [disabled]="this.wallet - (quantity*quote.c) < 0 || quantity === 0" (click) = "buyStock(this.wallet - (quantity*quote.c), quantity+quantityBought)">Buy</button>
+                </div>
+              </ng-template>
+              <div *ngIf="displaySell" class="col d-flex justify-content-start">
+                <button type="button" class="btn btn-danger" (click)="open2(sellModal)">Sell</button>
+              </div>
+              <ng-template #sellModal let-modal>
+                <div class="modal-header d-flex justify-content-between">
+                  <h4 class="modal-title" id="modal-buy">{{stock.ticker}}</h4>
+                  <button type="button" class="no-style" aria-label="Close" (click)="modal.dismiss('Cross click')">
+                    <span class="blue-text" aria-hidden="true">&times;</span>
+                  </button>
+                </div>
+                <div class="modal-body">
+                  <p>Current Price: {{quote.c}}</p>
+                  <p>Money in Wallet: ${{this.wallet}}</p>
+                  <div class="row align-items-center">
+                    <div class="col-auto">
+                      <span>Quantity: </span>
+                    </div>
+                    <div class="col">
+                      <input type="number" class="form-control" placeholder="Enter Quantity" [(ngModel)]="sellQuantity" />
+                    </div>
+                  </div>
+                  <div class="d-flex align-items-center" style="height: 25px;">
+                    <p *ngIf="sellQuantity > 0 && sellQuantity > quantityBought" style="color: red; margin: 0;">You cannot sell the stocks that you don't have!</p>
+                  </div>
+                </div>
+                <div class="modal-footer d-flex justify-content-between">
+                  <p>Total: {{sellQuantity*quote.c}}</p>
+                  <button type="button" class="btn btn-success" [disabled]="sellQuantity > quantityBought || sellQuantity === 0" (click) = "sellStock(this.wallet + (sellQuantity*quote.c), quantityBought-sellQuantity)">Sell</button>
+                </div>
+              </ng-template>
+            </div>
+          </td>
+        </tr>
       </tbody>
     </table>
   </div>
   <div class="col-4 d-flex align-items-stretch">
-    <div class="d-flex align-items-center justify-content-center" style="width: 100%;">
+    <div class="d-flex flex-column align-items-center justify-content-center" style="width: 100%;">
       <img style="width: 100px; height: 100px" src="{{stock.logo}}" />
+      <p *ngIf="timeNow - quote.t > 300" style = "color: red; font-weight:bold" class = "my-5">Market Closed on {{changeTimeFormat(quote.t)}}</p>
+      <p *ngIf="timeNow - quote.t <= 300" style = "color: green; font-weight:bold" class = "my-5">Market is open</p>
     </div>
   </div>
   <div *ngIf="!isEmptyObject(quote)" class="col-4">
@@ -83,7 +148,7 @@
         <tr>
           <td class="text-center border-bottom-0 py-2">
             <p class="my-0 py-0" style="font-size: medium; color: rgb(87, 89, 91); font-weight: 400">
-              {{changeTimeFormat(quote.t)}}</p>
+              {{changeTimeFormatLive(timeNow)}}</p>
           </td>
         </tr>
       </tbody>
@@ -93,7 +158,10 @@
 <ngb-alert *ngIf="alerts.length > 0" [type]="alerts[0].type" (closed)="close(alerts[0])" class="mt-5 w-50 mx-auto text-center">
   {{ alerts[0].message }}
 </ngb-alert>
-<div *ngIf="!isEmptyObject(quote) && alerts.length == 0">
+<ngb-alert *ngIf="alerts1.length > 0" [type]="alerts1[0].type" class="mt-5 w-50 mx-auto text-center" [dismissible]="false">
+  {{ alerts1[0].message }}
+</ngb-alert>
+<div *ngIf="!isEmptyObject(quote) && alerts.length == 0 && alerts1.length == 0">
   <div class="col-12 mx-auto" style="width: 70%;">
     <ul ngbNav #nav="ngbNav" [(activeId)]="active" class="nav-tabs row" style="border: 0">
       <li [ngbNavItem]="1" class="mx-auto col-3 d-flex justify-content-center" [class.active]="active === 1">
@@ -152,7 +220,7 @@
                 </tbody>
               </table>
             </div>
-            <div class="p-2 col-6">
+            <div class="p-2 col-6 my-5">
               <highcharts-chart [Highcharts]="Highcharts" [options]="chartOptions" [(update)]="updateFlag1"
                 [oneToOne]="oneToOneFlag" [runOutsideAngular]="runOutsideAngular"
                 style="width: 70%; height: 400px; display: block;"></highcharts-chart>
@@ -188,8 +256,12 @@
                   <p class="fs-4 mb-2">Share</p>
                 </div>
                 <div>
-                  <i class="fa-brands fa-x-twitter fa-3x" role="img" aria-label="Twitter"></i>
-                  <i class="fa-brands fa-square-facebook fa-3x mx-2" role="img" aria-label="Facebook"></i>
+                  <a [href]="'https://twitter.com/intent/tweet?text=' + encodeURI(selectedNews.headline + ' ' + selectedNews.url)" target="_blank">
+                    <i class="fa-brands fa-x-twitter fa-3x" role="img" style = "color: black" aria-label="Twitter"></i>
+                  </a>
+                  <a [href]="'https://www.facebook.com/sharer/sharer.php?u=' + encodeURI(selectedNews.url)" target="_blank">
+                    <i class="fa-brands fa-square-facebook fa-3x mx-2" style = "color: blue" role="img" aria-label="Facebook"></i>
+                  </a>
                 </div>
               </div>
             </ng-template>

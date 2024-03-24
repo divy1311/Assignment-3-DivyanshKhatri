@@ -1,5 +1,6 @@
 import { Component } from '@angular/core';
 import { DataService } from './data.service';
+import { ActivatedRoute, Router } from '@angular/router';
 
 @Component({
   selector: 'app-root',
@@ -9,7 +10,12 @@ import { DataService } from './data.service';
 export class AppComponent {
   title = 'Assignment-3';
 
-  constructor(private dataService: DataService) { }
+  constructor(private dataService: DataService, private route: ActivatedRoute, private router: Router) { }
+
+  isSearchRoute() {
+    const root = this.router.url.split('/')[1];
+    return root === 'search';
+  }
 
   ticker: string = "";
   isTickerPresent: boolean = false;

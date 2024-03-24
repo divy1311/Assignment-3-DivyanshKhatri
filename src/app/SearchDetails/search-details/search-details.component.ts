@@ -19,6 +19,10 @@ import HC_volume from 'highcharts/indicators/volume-by-price';
 import * as HighchartsHighStock from 'highcharts/highstock';
 import { Alert } from '../../models/alert';
 import { Sentiments } from '../../models/sentiments';
+import { catchError } from 'rxjs/operators';
+import { of } from 'rxjs';
+import { DataService } from '../../data.service';
+
 
 HC_SMA(HighchartsHighStock);
 HC_volume(HighchartsHighStock);
@@ -29,6 +33,15 @@ HC_volume(HighchartsHighStock);
   styleUrl: './search-details.component.css',
 })
 export class SearchDetailsComponent implements OnInit, AfterViewInit {
+
+parseInt(value: string) {
+  return parseInt(value);
+}
+
+  encodeURI(str: string): string {
+    return encodeURIComponent(str);
+  }
+
   getDate(isoDate: number) {
     let date = new Date(isoDate * 1000);
     const dateStr =
@@ -40,15 +53,86 @@ export class SearchDetailsComponent implements OnInit, AfterViewInit {
     return dateStr;
   }
 
-  alerts: Alert[] = [
-  ];
+  alerts: Alert[] = [];
+
+  alerts1: Alert[] = [];
+
+  timeNow = Date.now();
+
+  quantity: number = 0;
+
+  sellQuantity: number = 0;
+
+  quantityBought: number = 0;
+
+  wallet: number = 0;
 
   close(alert: Alert) {
-		this.alerts.splice(this.alerts.indexOf(alert), 1);
-	}
+    this.alerts = [];
+  }
 
   viewCard(news: any) {
     this.selectedNews = news;
+  }
+
+  open1(content: any) {
+    this.modalService.open(content, { ariaLabelledBy: 'modal-buy' });
+    this.homeService.getWallet().subscribe((data) => {
+      this.quantity = 0;
+      this.wallet = parseInt(data);
+      this.homeService.checkStock(this.formControl.value).subscribe((data) => {
+        console.log(data.quantity);
+        this.quantityBought = data.quantity;
+      });
+    })
+  }
+
+  numberOnly(event: any): boolean {
+    const charCode = (event.which) ? event.which : event.keyCode;
+    if (charCode > 31 && (charCode < 48 || charCode > 57)) {
+      return false;
+    }
+    return true;
+  }
+
+  buyStock(newAmount: number, newQuantity: number) {
+    console.log("New Quantity: " + newQuantity);
+    this.homeService.updateWallet(newAmount).pipe(
+      catchError(error => {
+        console.error(error);
+        return of(null);
+      })
+    ).subscribe(() => {
+      this.homeService.sellStock(this.formControl.value, newQuantity);
+      this.displaySell = true;
+    });
+    this.modalService.dismissAll();
+  }
+
+  sellStock(amount: number, newQuantity: number) {
+    console.log("New Quantity: Sell: " + newQuantity);
+    this.homeService.updateWallet(amount).pipe(
+      catchError(error => {
+        console.error(error);
+        return of(null);
+      })
+    ).subscribe(() => {
+      this.homeService.sellStock(this.formControl.value, newQuantity);
+    });
+
+    this.modalService.dismissAll();
+  }
+
+  open2(content: any) {
+    this.modalService.open(content, { ariaLabelledBy: 'modal-sell' });
+    this.homeService.getWallet().subscribe((data) => {
+      this.wallet = parseInt(data);
+      this.homeService.checkStock(this.formControl.value).subscribe((data) => {
+        this.sellQuantity = 0;
+        this.quantityBought = data.quantity;
+      });
+    })
+
   }
 
   open(content: any) {
@@ -83,9 +167,12 @@ export class SearchDetailsComponent implements OnInit, AfterViewInit {
 
   sentiments: number[] = [0, 0, 0, 0, 0, 0];
 
+  marketClosed: boolean = false;
+
+  time: number = 0;
+
   Highcharts: typeof HighchartsHighStock = HighchartsHighStock;
-  chartOptions: Highcharts.Options = {
-  };
+  chartOptions: Highcharts.Options = {};
 
   chartOptions1: Highcharts.Options = {
     series: [
@@ -97,6 +184,10 @@ export class SearchDetailsComponent implements OnInit, AfterViewInit {
       },
     ],
   };
+
+  wrongStock = false;
+
+  displaySell = false;
 
   chartOptions2: Highcharts.Options = {};
 
@@ -114,7 +205,8 @@ export class SearchDetailsComponent implements OnInit, AfterViewInit {
     private router: Router,
     private route: ActivatedRoute,
     private cdr: ChangeDetectorRef,
-    private modalService: NgbModal
+    private modalService: NgbModal,
+    private dataService: DataService
   ) {}
 
   filteredStocks!: Observable<StockDetail[]>;
@@ -129,6 +221,15 @@ export class SearchDetailsComponent implements OnInit, AfterViewInit {
     this.route.params.forEach((param) => {
       this.formControl.setValue(param['ticker']);
       this.search();
+    });
+    this.homeService.stocksBought().subscribe((data) => {
+      data.forEach((s) => {
+        if (this.formControl.value === s.stock && s.quantity > 0) {
+          this.displaySell = true;
+          this.quantityBought = s.quantity;
+
+        }
+      });
     });
     this.route.params.subscribe((params) => {
       if (params['peer']) {
@@ -161,6 +262,9 @@ export class SearchDetailsComponent implements OnInit, AfterViewInit {
   }
 
   search(): void {
+
+    this.alerts = [];
+    this.alerts1 = [];
     let ticker = this.formControl.value;
     if (ticker === '') {
       this.alerts.push({
@@ -169,14 +273,49 @@ export class SearchDetailsComponent implements OnInit, AfterViewInit {
       });
       return;
     }
+    this.displaySell = false;
+    this.homeService.stocksBought().subscribe((data) => {
+      data.forEach((s) => {
+        if (ticker === s.stock) {
+          this.displaySell = true;
+        }
+      });
+    });
+
+    this.homeService.checkIfTickerCorrect(ticker).pipe(
+      catchError((error) => {
+        console.log('API call failed: ', error);
+        this.wrongStock = true;
+        this.alerts1.push({
+          type: 'danger',
+          message: 'No data found. Please enter a valid Ticker',
+        });
+        this.dataService.setAllToDefault();
+        return of(null);
+      })
+    ).subscribe();
+
+    this.displayData(ticker);
+  }
+
+  displayData(ticker: string): void {
     this.router.navigate(['/search', this.formControl.value]);
     this.homeService.search(ticker).subscribe((data) => {
       this.stock = data;
     });
 
+    this.homeService.quote(ticker).subscribe((data) => {
+      this.quote = data;
+      if (data.t * 1000 - Date.now() > 300) {
+        this.marketClosed = true;
+      }
+      this.time = data.t * 1000;
+    });
+
     this.homeService.chart(ticker, 'true').subscribe((data) => {
       this.chart = data.results;
       this.chartValues = [];
+      console.log(Date.now() - (data.t * 1000));
       this.chart.forEach((d) => {
         this.chartValues.push([d['t'], d['c']]);
       });
@@ -205,15 +344,16 @@ export class SearchDetailsComponent implements OnInit, AfterViewInit {
             name: 'Stock Price',
             data: this.chartValues,
             type: 'line',
+            color:
+              Date.now() - this.time > 300 ? 'red' : 'green',
             threshold: null,
+            marker: {
+              enabled: false,
+            },
           },
         ],
       };
       this.updateFlag1 = true;
-    });
-
-    this.homeService.quote(ticker).subscribe((data) => {
-      this.quote = data;
     });
 
     this.homeService.companyPeers(ticker).subscribe((data) => {
@@ -261,6 +401,11 @@ export class SearchDetailsComponent implements OnInit, AfterViewInit {
         this.sentiments[0] += s.mspr;
       });
     });
+
+    this.createGraph();
+    this.createStackedColumnGraph();
+    this.createSplineChart();
+
     this.cdr.detectChanges();
   }
 
@@ -270,7 +415,7 @@ export class SearchDetailsComponent implements OnInit, AfterViewInit {
 
   createGraph(): void {
     let ticker = this.formControl.value;
-    this.homeService.chart(ticker, 'false').subscribe((data) => {
+    this.homeService.chart1(ticker, 'false').subscribe((data) => {
       this.chart = data.results;
       let candleStickValues: number[][] = [];
       let volumeValues: number[][] = [];
@@ -558,5 +703,15 @@ export class SearchDetailsComponent implements OnInit, AfterViewInit {
   changeTimeFormat(time: number): string {
     const date = new Date(time * 1000);
     return date.toLocaleString();
+  }
+
+  changeTimeFormatLive(time: number): string {
+    const date = new Date(time);
+    return date.toLocaleString();
+  }
+
+  resetAlerts(): void {
+    this.alerts = [];
+    this.alerts1 = [];
   }
 }

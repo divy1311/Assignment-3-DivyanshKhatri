@@ -17,6 +17,7 @@ export class DataService {
   private stockData: Stock = {} as Stock;
   private ticker: string = "";
   private chart: any = {};
+  private chart1: any = {};
   private peers: string[] = [];
   private news: News[] = [];
   private sentiments: Sentiments[] = [];
@@ -53,6 +54,14 @@ export class DataService {
 
   getChart(): Observable<any> {
     return of(this.chart);
+  }
+
+  setChart1(chart1: any): void {
+    this.chart1 = chart1;
+  }
+
+  getChart1(): Observable<any> {
+    return of(this.chart1);
   }
 
   setPeers(peers: string[]): void {
@@ -93,5 +102,31 @@ export class DataService {
 
   getTrends(): Observable<Trends[]> {
     return of(this.trends);
+  }
+
+  setAllToDefault(): void {
+    this.quote = {} as Quote;
+    this.stockData = {} as Stock;
+    this.ticker = "";
+    this.chart = {};
+    this.peers = [];
+    this.news = [];
+    this.sentiments = [];
+    this.earnings = [];
+    this.trends = [];
+  }
+
+  getAllDetails(): Observable<any> {
+    return of({
+      quote: this.quote,
+      stockData: this.stockData,
+      ticker: this.ticker,
+      chart: this.chart,
+      peers: this.peers,
+      news: this.news,
+      sentiments: this.sentiments,
+      earnings: this.earnings,
+      trends: this.trends,
+    });
   }
 }
