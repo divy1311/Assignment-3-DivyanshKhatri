@@ -4,9 +4,9 @@
 <form (submit)="search(); $event.preventDefault()">
   <div class="container" style="margin-top: 3rem">
     <div class="row justify-content-center">
-      <div class="col-lg-6 col-12">
+      <div class="col-10 col-lg-4 col-md-8 col-sm-6">
         <div class="input-group mb-3 input-group-order">
-          <input type="text" class="form-control input-no-focus" [matAutocomplete]="auto" [formControl]="formControl"
+          <input type="text" class="form-control input-no-focus small-placeholder" [matAutocomplete]="auto" [formControl]="formControl"
             style="border: none" placeholder="Enter Stock Ticker Symbol" aria-label="Stock Ticker"
             aria-describedby="basic-addon2" [matAutocomplete]="auto">
           <mat-autocomplete #auto="matAutocomplete">
@@ -20,13 +20,13 @@
             </mat-option>
           </mat-autocomplete>
           <div class="input-group-append row">
-            <div class="col-4">
-              <button class="btn btn-block" type="submit">
+            <div class="col-4 d-flex align-items-center">
+              <button class="btn p-0 m-0" type="submit">
                 <i class="bi bi-search" style="font-size: 1.5rem;"></i>
               </button>
             </div>
-            <div class="col-4">
-              <button class="btn btn-block" type="reset" (click) = "resetAlerts()">
+            <div class="col-4  d-flex align-items-center">
+              <button class="btn p-0 m-0" type="reset" (click) = "resetAlerts()">
                 <i class="bi bi-x" style="font-size: 1.5rem;"></i>
               </button>
             </div>

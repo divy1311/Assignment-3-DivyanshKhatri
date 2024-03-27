@@ -1,1 +1,38 @@
-<p>watchlist works!</p>
+<div class="container" style="margin-top: 100px;">
+  <div class="h1 font-weight-bold" style="letter-spacing: 2px;">My Watchlist</div>
+  <ngb-alert *ngIf="alerts.length > 0" [type]="alerts[0].type" [dismissible]="false"
+    class="mt-5 mx-auto text-center">
+    {{ alerts[0].message }}
+  </ngb-alert>
+  <div class="d-flex justify-content-center">
+    <mat-spinner *ngIf="displaySpinner" [color]="color" [diameter]="70"></mat-spinner>
+  </div>
+  <div *ngIf="!checkIfObjectEmpty(watchlist) && !checkIfMapEmpty(watchlistStocks)">
+    <table *ngFor="let w of watchlist" class="table table-borderless">
+      <tbody>
+        <tr style="border-top: 1px #dee2e6 solid; border-left: 1px #dee2e6 solid; border-right: 1px #dee2e6 solid;">
+          <td colspan="2" style="padding-left: 1rem;" class="pb-0"><span class="p-0 m-0" (click)="cross(w.ticker)"
+              style="cursor: pointer;">&times;</span></td>
+        </tr>
+        <tr style="border-left: 1px #dee2e6 solid; border-right: 1px #dee2e6 solid;">
+          <td class="col-6 h3" style="font-weight: normal; padding-left: 1rem;">{{w.ticker}}</td>
+          <ng-container *ngIf="watchlistStocks.get(w.ticker) as stock">
+            <td [style.color]="stock[1] > 0 ? 'green' : 'red'" class="col-6 h4" style="padding-left: 1rem;">{{stock[0]}}
+            </td>
+          </ng-container>
+        </tr>
+        <tr style="border-left: 1px #dee2e6 solid; border-bottom: 1px #dee2e6 solid; border-right: 1px #dee2e6 solid;">
+          <td class="col-6 h6 pt-0 pb-4" style="padding-left: 1rem;">{{w.stockDescription}}</td>
+          <td class="col-6 pt-0 pb-4" style="padding-left: 1rem;">
+            <ng-container *ngIf="watchlistStocks.get(w.ticker) as stock">
+              <span class="h6" *ngIf="stock[1] > 0" style="color: green;">&#9650;</span>
+              <span *ngIf="stock[1] < 0" style="color: red;">&#9660;</span>
+              <span class="h6" [style.color]="stock[1] > 0 ? 'green' : 'red'">{{stock[1]}}</span>
+              <span class="h6" [style.color]="stock[1] > 0 ? 'green' : 'red'"> ({{stock[2]}}%)</span>
+            </ng-container>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>

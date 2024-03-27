@@ -1,4 +1,4 @@
-import { Injectable, OnInit } from '@angular/core';
+import { Injectable } from '@angular/core';
 import { Observable, of, switchMap, take, tap } from 'rxjs';
 import { Stock } from '../models/stock';
 import { HttpClient } from '@angular/common/http';
@@ -10,6 +10,7 @@ import { Earnings } from '../models/earnings';
 import { Trends } from '../models/trends';
 import { DataService } from '../data.service';
 import { StocksBought } from '../models/stocks-bought';
+import { Watchlist } from '../models/watchlist';
 
 @Injectable({
   providedIn: 'root',
@@ -20,7 +21,6 @@ export class HomeService {
   constructor(private http: HttpClient, private dataService: DataService) {}
 
   checkIfTickerCorrect(stock: string): Observable<Stock> {
-    console.log('reached here');
     let url = `http://localhost:3000/company?ticker=${stock}`;
     return this.http.get<Stock>(url);
   }
@@ -151,6 +151,11 @@ export class HomeService {
         this.dataService.setQuote(data);
       })
     );
+  }
+
+  quoteForPortfolio(ticker: string): Observable<Quote> {
+    let url = `http://localhost:3000/company/quote?ticker=${ticker}`;
+    return this.http.get<Quote>(url);
   }
 
   stockNames(ticker: string): Observable<StockDetail[]> {
@@ -319,13 +324,33 @@ export class HomeService {
     return this.http.get<StocksBought[]>(url);
   }
 
-  checkStock(ticker: string): Observable<StocksBought> {
-    let url = `http://localhost:3000/checkStock?ticker=${ticker}`;
+  checkStock(ticker: string, stockDescription: string): Observable<StocksBought> {
+    let url = `http://localhost:3000/checkStock?ticker=${ticker}&stockDescription=${stockDescription}`;
     return this.http.get<StocksBought>(url);
   }
 
-  sellStock(ticker: string, quantity: number): void {
-    let url = `http://localhost:3000/sellStock?ticker=${ticker}&quantity=${quantity}`;
+  updateStock(ticker: string, stockDescription: string, quantity: number, avgPrice: number): void {
+    let url = `http://localhost:3000/updateStock?ticker=${ticker}&quantity=${quantity}&price=${avgPrice}&stockDescription=${stockDescription}`;
     this.http.get(url).subscribe();
+  }
+
+  updateStock1(ticker: string, stockDescription: string, quantity: number, avgPrice: number): Observable<any> {
+    let url = `http://localhost:3000/updateStock?ticker=${ticker}&quantity=${quantity}&price=${avgPrice}&stockDescription=${stockDescription}`;
+    return this.http.get(url);
+  }
+
+  addToWatchlist(ticker: string, stockDescription: string): Observable<any> {
+    let url = `http://localhost:3000/addToWatchlist?ticker=${ticker}&stockDescription=${stockDescription}`;
+    return this.http.get(url);
+  }
+
+  removeFromWatchlist(ticker: string): Observable<any> {
+    let url = `http://localhost:3000/removeFromWatchlist?ticker=${ticker}`;
+    return this.http.get(url);
+  }
+
+  getWatchlist(): Observable<Watchlist[]> {
+    let url = `http://localhost:3000/getWatchlist`;
+    return this.http.get<Watchlist[]>(url);
   }
 }

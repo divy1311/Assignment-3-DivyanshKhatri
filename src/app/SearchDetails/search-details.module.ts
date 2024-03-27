@@ -7,6 +7,7 @@ import {MatProgressSpinnerModule} from '@angular/material/progress-spinner';
 import { HighchartsChartModule } from 'highcharts-angular';
 import { SearchDetailsComponent } from './search-details/search-details.component';
 import { RouterModule } from '@angular/router';
+import {MatTabsModule} from '@angular/material/tabs'
 
 @NgModule({
   declarations: [
@@ -22,7 +23,8 @@ import { RouterModule } from '@angular/router';
     HighchartsChartModule,
     RouterModule,
     NgbAlert,
-    NgbModalModule
+    NgbModalModule,
+    MatTabsModule
   ]
 })
 export class SearchDetailsModule { }

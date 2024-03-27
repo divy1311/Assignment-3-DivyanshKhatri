@@ -4,11 +4,11 @@
 <form (submit)="search(); $event.preventDefault();">
   <div class="container" style="margin-top: 3rem">
     <div class="row justify-content-center">
-      <div class="col-lg-6 col-12">
+      <div class="col-10 col-lg-4 col-md-8 col-sm-6">
         <div class="input-group mb-3 input-group-order">
-          <input type="text" class="form-control input-no-focus" [matAutocomplete]="auto" [formControl]="formControl"
-            style="border: none" placeholder="Enter Stock Ticker Symbol" aria-label="Stock Ticker"
-            aria-describedby="basic-addon2" [matAutocomplete]="auto">
+          <input type="text" class="form-control input-no-focus small-placeholder" [matAutocomplete]="auto"
+            [formControl]="formControl" style="border: none" placeholder="Enter Stock Ticker Symbol"
+            aria-label="Stock Ticker" aria-describedby="basic-addon2" [matAutocomplete]="auto">
           <mat-autocomplete #auto="matAutocomplete">
             <ng-container *ngIf="isLoading">
               <mat-option>
@@ -20,13 +20,13 @@
             </mat-option>
           </mat-autocomplete>
           <div class="input-group-append row">
-            <div class="col-4">
-              <button class="btn btn-block" type="submit">
+            <div class="col-4 d-flex align-items-center">
+              <button class="btn p-0 m-0" type="submit">
                 <i class="bi bi-search" style="font-size: 1.5rem;"></i>
               </button>
             </div>
-            <div class="col-4">
-              <button class="btn btn-block" type="reset" (click) = "navigateToHome()">
+            <div class="col-4 d-flex align-items-center">
+              <button class="btn p-0 m-0" type="reset" (click)="navigateToHome()">
                 <i class="bi bi-x" style="font-size: 1.5rem;"></i>
               </button>
             </div>
@@ -36,32 +36,64 @@
     </div>
   </div>
 </form>
-<div *ngIf="!isEmptyObject(stock) && alerts.length === 0 && alerts1.length === 0" class="row my-5">
-  <div class="col-4">
-    <table class="table d-flex justify-content-end">
+<div *ngIf="displaySell" class="mt-4 d-flex justify-content-center">
+  <mat-spinner *ngIf="displaySpinner" [color]="color" [diameter]="70"></mat-spinner>
+</div>
+<ngb-alert *ngIf="watchlistAlert.length > 0" [type]="watchlistAlert[0].type" (closed)="close(watchlistAlert[0])"
+  class="mt-1 w-75 mx-auto text-center">
+  {{ watchlistAlert[0].message }}
+</ngb-alert>
+<ngb-alert *ngIf="buySellAlert.length > 0" [type]="buySellAlert[0].type" (closed)="closeBuySellAlert(buySellAlert[0])"
+  class="mt-1 w-75 mx-auto text-center">
+  {{ buySellAlert[0].message }}
+</ngb-alert>
+
+<div *ngIf="!isEmptyObject(stock) && alerts.length === 0 && alerts1.length === 0"
+  class="align-middle d-flex justify-content-center m-5 mt-3 row">
+  <div class="col-4 p-0">
+    <table class="table d-flex justify-content-end px-3">
       <tbody>
         <tr>
           <td class="text-center border-bottom-0 py-2 d-flex align-items-center justify-content-center">
-            <p class="my-0 py-0 px-2 d-inline" style="font-size: 40px; font-weight: 700">{{stock.ticker}}</p>
-            <i class="bi bi-star d-inline" style="font-size: 1.2rem;"></i>
+            <p class="my-0 py-0 px-2 d-inline d-none d-sm-block" style="font-size: 40px; font-weight: 500">
+              {{stock.ticker}}</p>
+            <p class="my-0 py-0 px-2 d-inline d-block d-sm-none" style="font-size: 24px; font-weight: 500">
+              {{stock.ticker}}</p>
+            <i [ngClass]="watchlistPressed ? 'fas fa-star' : 'far fa-star'"
+              [style.color]="watchlistPressed ? 'rgb(254, 223, 59)' : 'black'" [style.fontSize]="'24px'"
+              (click)="watchlist()" class="d-none d-sm-block"></i>
+            <i [ngClass]="watchlistPressed ? 'fas fa-star' : 'far fa-star'"
+              [style.color]="watchlistPressed ? 'rgb(254, 223, 59)' : 'black'" [style.fontSize]="'22px'"
+              (click)="watchlist()" class="d-block d-sm-none"></i>
           </td>
         </tr>
         <tr>
-          <td class="text-center border-bottom-0 py-2">
-            <h2 class="my-0 py-0" style="font-size: 30px; color: rgb(87, 89, 91); font-weight: 400">{{stock.name}}</h2>
+          <td class="text-center border-bottom-0 p-0">
+            <h2 class="my-0 pb-2 d-none d-sm-block" style="font-size: 30px; color: rgb(87, 89, 91); font-weight: 400">
+              {{stock.name}}</h2>
+            <h2 class="my-0 py-0 d-block d-sm-none" style="font-size: 18px; color: rgb(87, 89, 91); font-weight: 400">
+              {{stock.name}}</h2>
           </td>
         </tr>
         <tr>
-          <td class="text-center border-bottom-0 py-2">
-            <p class="my-0 py-0" style="font-size: medium; color: rgb(87, 89, 91); font-weight: 400">{{stock.exchange}}
+          <td class="text-center border-bottom-0 p-0">
+            <p class="my-0 py-0 d-none d-sm-block" style="font-size: medium; color: rgb(87, 89, 91); font-weight: 400">
+              {{stock.exchange}}
+            </p>
+            <p class="my-0 py-0 d-block d-sm-none" style="font-size: 12px; color: rgb(87, 89, 91); font-weight: 400">
+              {{stock.exchange}}
             </p>
           </td>
         </tr>
         <tr>
           <td class="text-center border-bottom-0 py-2">
-            <div class="row">
-              <div class="col" [ngClass]="{'d-flex justify-content-end': displaySell, 'd-flex justify-content-center': !displaySell}">
+            <div class="d-flex justify-content-center row">
+              <div class="d-flex col-6"
+                [ngClass]="{'justify-content-end': displaySell, 'justify-content-center': !displaySell}">
                 <button type="button" class="btn btn-success" (click)="open1(buyModal)">Buy</button>
+              </div>
+              <div *ngIf="displaySell" class="col-6 d-flex justify-content-start">
+                <button type="button" class="btn btn-danger" (click)="open2(sellModal)">Sell</button>
               </div>
               <ng-template #buyModal let-modal>
                 <div class="modal-header d-flex justify-content-between">
@@ -78,18 +110,18 @@
                       <span>Quantity: </span>
                     </div>
                     <div class="col">
-                      <input type="number" class="form-control" placeholder="Enter Quantity" [(ngModel)]="quantity" (keypress)="numberOnly($event)" />
+                      <input type="number" class="form-control" placeholder="Enter Quantity" [(ngModel)]="quantity"
+                        (keypress)="numberOnly($event)" />
                     </div>
                   </div>
                 </div>
                 <div class="modal-footer d-flex justify-content-between">
                   <p>Total: {{quantity*quote.c}}</p>
-                  <button type="button" class="btn btn-success" [disabled]="this.wallet - (quantity*quote.c) < 0 || quantity === 0" (click) = "buyStock(this.wallet - (quantity*quote.c), quantity+quantityBought)">Buy</button>
+                  <button type="button" class="btn btn-success"
+                    [disabled]="this.wallet - (quantity*quote.c) < 0 || quantity === 0"
+                    (click)="buyStock(this.wallet - (quantity*quote.c), quantity+quantityBought, calculateAvgPrice(quantity, quote.c, quantityBought, oldPrice))">Buy</button>
                 </div>
               </ng-template>
-              <div *ngIf="displaySell" class="col d-flex justify-content-start">
-                <button type="button" class="btn btn-danger" (click)="open2(sellModal)">Sell</button>
-              </div>
               <ng-template #sellModal let-modal>
                 <div class="modal-header d-flex justify-content-between">
                   <h4 class="modal-title" id="modal-buy">{{stock.ticker}}</h4>
@@ -105,16 +137,20 @@
                       <span>Quantity: </span>
                     </div>
                     <div class="col">
-                      <input type="number" class="form-control" placeholder="Enter Quantity" [(ngModel)]="sellQuantity" />
+                      <input type="number" class="form-control" placeholder="Enter Quantity"
+                        [(ngModel)]="sellQuantity" />
                     </div>
                   </div>
                   <div class="d-flex align-items-center" style="height: 25px;">
-                    <p *ngIf="sellQuantity > 0 && sellQuantity > quantityBought" style="color: red; margin: 0;">You cannot sell the stocks that you don't have!</p>
+                    <p *ngIf="sellQuantity > 0 && sellQuantity > quantityBought" style="color: red; margin: 0;">You
+                      cannot sell the stocks that you don't have!</p>
                   </div>
                 </div>
                 <div class="modal-footer d-flex justify-content-between">
                   <p>Total: {{sellQuantity*quote.c}}</p>
-                  <button type="button" class="btn btn-success" [disabled]="sellQuantity > quantityBought || sellQuantity === 0" (click) = "sellStock(this.wallet + (sellQuantity*quote.c), quantityBought-sellQuantity)">Sell</button>
+                  <button type="button" class="btn btn-success"
+                    [disabled]="sellQuantity > quantityBought || sellQuantity === 0"
+                    (click)="sellStock(this.wallet + (sellQuantity*quote.c), quantityBought-sellQuantity)">Sell</button>
                 </div>
               </ng-template>
             </div>
@@ -123,56 +159,84 @@
       </tbody>
     </table>
   </div>
-  <div class="col-4 d-flex align-items-stretch">
-    <div class="d-flex flex-column align-items-center justify-content-center" style="width: 100%;">
-      <img style="width: 100px; height: 100px" src="{{stock.logo}}" />
-      <p *ngIf="timeNow - quote.t > 300" style = "color: red; font-weight:bold" class = "my-5">Market Closed on {{changeTimeFormat(quote.t)}}</p>
-      <p *ngIf="timeNow - quote.t <= 300" style = "color: green; font-weight:bold" class = "my-5">Market is open</p>
+  <div class="align-middle col-3 d-flex justify-content-center p-0">
+    <div class="">
+      <img style="width: 100px; height: 100px" src="{{stock.logo}}" class="d-none d-sm-block" />
+      <img style="width: 50px; height: 50px" src="{{stock.logo}}" class="d-block d-sm-none" />
+      <!-- <p *ngIf="timeNow - quote.t > 300" style="color: red; font-weight:bold" class="my-5">Market Closed on
+        {{changeTimeFormat(quote.t)}}</p>
+      <p *ngIf="timeNow - quote.t <= 300" style="color: green; font-weight:bold" class="my-5">Market is open</p> -->
     </div>
   </div>
-  <div *ngIf="!isEmptyObject(quote)" class="col-4">
-    <table class="table d-flex justify-content-start">
+  <div *ngIf="!isEmptyObject(quote)" class="col-4 p-0">
+    <table class="table d-flex justify-content-start px-3">
       <tbody>
         <tr>
-          <td class="text-center border-bottom-0 py-2">
-            <p [class.text-green]="quote.dp > 0" [class.text-red]="quote.dp < 0" class="my-0 py-0"
-              style="font-size: 40px; font-weight: 700">{{quote.c}}</p>
+          <td class="text-center border-bottom-0 p-0">
+            <p [class.text-green]="quote.dp > 0" [class.text-red]="quote.dp < 0" class="my-0 py-2 d-none d-sm-block"
+              style="font-size: 40px; font-weight: 500">{{quote.c}}</p>
+            <p [class.text-green]="quote.dp > 0" [class.text-red]="quote.dp < 0" class="my-0 py-2 d-block d-sm-none"
+              style="font-size: 24px; font-weight: 500">{{quote.c}}</p>
           </td>
         </tr>
         <tr>
-          <td class="text-center border-bottom-0 py-2">
-            <p [class.text-green]="quote.dp > 0" [class.text-red]="quote.dp < 0" class="my-0 py-0"
+          <td class="text-center border-bottom-0 p-0">
+            <p [class.text-green]="quote.dp > 0" [class.text-red]="quote.dp < 0" class="my-0 py-2 d-none d-sm-block"
               style="font-size: 30px; font-weight: 400">{{quote.d}} ({{quote.dp}}%)</p>
+            <div [class.text-green]="quote.dp > 0" [class.text-red]="quote.dp < 0" class="my-0 py-0 d-block d-sm-none"
+              style="font-size: 18px; font-weight: 400"><span>{{quote.d}}</span> <br>
+              <div class="py-1">({{quote.dp}}%)</div>
+            </div>
           </td>
         </tr>
         <tr>
-          <td class="text-center border-bottom-0 py-2">
-            <p class="my-0 py-0" style="font-size: medium; color: rgb(87, 89, 91); font-weight: 400">
-              {{changeTimeFormatLive(timeNow)}}</p>
+          <td class="text-center border-bottom-0 p-0">
+            <p class="my-0 py-0 d-none d-sm-block" style="font-size: medium; color: rgb(87, 89, 91); font-weight: 400;">
+              {{changeTimeFormatLive(timeNow) | date: "yyyy-MM-dd H:mm:ss"}}</p>
+            <p class="my-0 py-0 d-block d-sm-none"
+              style="font-size: 12px; color: rgb(87, 89, 91); font-weight: 400; white-space: nowrap;">
+              {{changeTimeFormatLive(timeNow) | date: "yyyy-MM-dd H:mm:ss"}}
+            </p>
           </td>
         </tr>
       </tbody>
     </table>
   </div>
+  <div *ngIf="!isEmptyObject(stock) && alerts.length === 0 && alerts1.length === 0" class="row p-0">
+    <p *ngIf="timeNow - quote.t > 300" style="color: red; font-weight:bold"
+      class="align-middle d-flex justify-content-center">Market Closed on
+      {{changeTimeFormat(quote.t) | date: "yyyy-MM-dd H:mm:ss"}}</p>
+    <p *ngIf="timeNow - quote.t <= 300" style="color: green; font-weight:bold"
+      class=" align-middle d-flex justify-content-center">Market is open</p>
+  </div>
 </div>
-<ngb-alert *ngIf="alerts.length > 0" [type]="alerts[0].type" (closed)="close(alerts[0])" class="mt-5 w-50 mx-auto text-center">
+
+<ngb-alert *ngIf="alerts.length > 0" [type]="alerts[0].type" (closed)="close(alerts[0])"
+  class="mt-5 w-50 mx-auto text-center">
   {{ alerts[0].message }}
 </ngb-alert>
-<ngb-alert *ngIf="alerts1.length > 0" [type]="alerts1[0].type" class="mt-5 w-50 mx-auto text-center" [dismissible]="false">
+<ngb-alert *ngIf="alerts1.length > 0" [type]="alerts1[0].type" class="mt-5 w-50 mx-auto text-center"
+  [dismissible]="false">
   {{ alerts1[0].message }}
 </ngb-alert>
 <div *ngIf="!isEmptyObject(quote) && alerts.length == 0 && alerts1.length == 0">
-  <div class="col-12 mx-auto" style="width: 70%;">
-    <ul ngbNav #nav="ngbNav" [(activeId)]="active" class="nav-tabs row" style="border: 0">
-      <li [ngbNavItem]="1" class="mx-auto col-3 d-flex justify-content-center" [class.active]="active === 1">
+  <div class="col-10 mx-auto col-sm-9 col-md-10 col-lg-10 d-sm-flex d-md-block d-flex"
+    style="align-items: center; justify-content: center;">
+    <button (click)="scrollLeft()" style="margin-right: 10px; position: sticky;" class="arrows d-block d-sm-none">
+      <i class="bi bi-chevron-left" style="font-size: 1rem;"></i>
+    </button>
+    <ul #scrollableList ngbNav #nav="ngbNav" [(activeId)]="active" class="nav-tabs row scrollable-list d-flex flex-row"
+      style="border: 0; margin: 0; flex-flow: column; overflow-x: auto !important; flex-wrap: nowrap !important;">
+      <li [ngbNavItem]="1" class="mx-auto col-5 col-md-3 d-flex justify-content-center" style="white-space: nowrap;"
+        [class.active]="active === 1">
         <button [class.button-active]="active === 1"
-          style="text-align: center; border: 0; background-color: transparent; color: gray; font-weight: 600; font-size: 15px"
+          style="text-align: center; border: 0; background-color: transparent; color: gray; font-weight: 600; font-size: 15px;"
           ngbNavLink>Summary</button>
         <ng-template ngbNavContent>
-          <div class="d-flex row justify-content-center" style="width: 70%; margin: auto;">
-            <div class="p-2 col-6">
+          <div class="d-flex justify-content-center align-items-center row col-12 col-lg-9 mx-auto">
+            <div class="p-2  col-sm">
               <div class="row">
-                <div class="col-6">
+                <div class="col-6 d-none d-sm-block">
                   <table class="table table-borderless">
                     <tbody>
                       <tr>
@@ -190,6 +254,22 @@
                     </tbody>
                   </table>
                 </div>
+                <table class="table table-borderless d-block d-sm-none justify-content-center d-flex">
+                  <tbody>
+                    <tr>
+                      <td class="text-center"><span style="font-weight: bold;">High Price:</span> {{quote.h}}</td>
+                    </tr>
+                    <tr>
+                      <td class="text-center"><span style="font-weight: bold;">Low Price:</span> {{quote.l}}</td>
+                    </tr>
+                    <tr>
+                      <td class="text-center"><span style="font-weight: bold;">Open Price:</span> {{quote.o}}</td>
+                    </tr>
+                    <tr>
+                      <td class="text-center"><span style="font-weight: bold;">Prev. Close:</span> {{quote.pc}}</td>
+                    </tr>
+                  </tbody>
+                </table>
               </div>
               <table class="table table-borderless">
                 <tbody>
@@ -212,29 +292,30 @@
                   <tr>
                     <td class="text-center">
                       <p style="font-weight: bold;">Company Peers:</p>
-                      <span *ngFor="let peer of this.peers">
-                        <a [routerLink]="['/search', peer]">{{peer}},</a>
-                      </span>
+                      <div style="display: flex; justify-content: center; flex-wrap: wrap;">
+                        <a *ngFor="let peer of this.peers" style="white-space: nowrap; margin-right: 5px;"
+                          [routerLink]="['/search', peer]">{{peer}}, </a>
+                      </div>
                     </td>
                   </tr>
                 </tbody>
               </table>
             </div>
-            <div class="p-2 col-6 my-5">
+            <div class="p-lg-2 my-lg-5 col-sm p-0 m-4">
               <highcharts-chart [Highcharts]="Highcharts" [options]="chartOptions" [(update)]="updateFlag1"
-                [oneToOne]="oneToOneFlag" [runOutsideAngular]="runOutsideAngular"
-                style="width: 70%; height: 400px; display: block;"></highcharts-chart>
+                [oneToOne]="true" [runOutsideAngular]="runOutsideAngular"
+                style="width: 90%; height: 400px; display: block; margin: 0 auto;"></highcharts-chart>
             </div>
           </div>
         </ng-template>
       </li>
-      <li [ngbNavItem]="2" class="mx-auto col-3 d-flex justify-content-center" [class.active]="active === 2">
+      <li [ngbNavItem]="2" class="mx-auto col-5 col-md-3 d-flex justify-content-center" style="white-space: nowrap;"
+        [class.active]="active === 2">
         <button [class.button-active]="active === 2"
           style="text-align: center; border: 0; background-color: transparent; color: gray; font-weight: 600; font-size: 15px"
           ngbNavLink>Top News</button>
         <ng-template ngbNavContent>
-          <div *ngIf="!isEmptyObject(newsValues)" class="d-flex row justify-content-center"
-            style="width: 70%; margin: auto;">
+          <div *ngIf="!isEmptyObject(newsValues)" class="d-flex row justify-content-center" style="margin: auto;">
             <ng-template #content let-modal>
               <div class="modal-header d-flex justify-content-between align-items-center w-100">
                 <div style="flex-grow: 1;">
@@ -256,18 +337,21 @@
                   <p class="fs-4 mb-2">Share</p>
                 </div>
                 <div>
-                  <a [href]="'https://twitter.com/intent/tweet?text=' + encodeURI(selectedNews.headline + ' ' + selectedNews.url)" target="_blank">
-                    <i class="fa-brands fa-x-twitter fa-3x" role="img" style = "color: black" aria-label="Twitter"></i>
+                  <a [href]="'https://twitter.com/intent/tweet?text=' + encodeURI(selectedNews.headline + ' ' + selectedNews.url)"
+                    target="_blank">
+                    <i class="fa-brands fa-x-twitter fa-3x" role="img" style="color: black" aria-label="Twitter"></i>
                   </a>
-                  <a [href]="'https://www.facebook.com/sharer/sharer.php?u=' + encodeURI(selectedNews.url)" target="_blank">
-                    <i class="fa-brands fa-square-facebook fa-3x mx-2" style = "color: blue" role="img" aria-label="Facebook"></i>
+                  <a [href]="'https://www.facebook.com/sharer/sharer.php?u=' + encodeURI(selectedNews.url)"
+                    target="_blank">
+                    <i class="fa-brands fa-square-facebook fa-3x mx-2" style="color: blue" role="img"
+                      aria-label="Facebook"></i>
                   </a>
                 </div>
               </div>
             </ng-template>
             <ng-container *ngFor="let news of newsValues; index as i">
-              <div class="row" *ngIf="i % 2 === 0">
-                <div class="col border mx-2 my-3 rounded" style="height: 120px;">
+              <div class="row d-none justify-content-center d-md-flex" *ngIf="i % 2 === 0">
+                <div class="col-4 border mx-2 my-3 rounded" style="height: 120px;">
                   <div (click)="open(content); viewCard(news)" class="row h-100 align-items-center">
                     <div class="col-3 h-75 rounded">
                       <img class="img-fluid h-100 w-100 rounded" src="{{news.image}}" style="object-fit: cover;">
@@ -275,7 +359,7 @@
                     <p class="col-9">{{news.headline}}</p>
                   </div>
                 </div>
-                <div class="col border mx-2 my-3 rounded" *ngIf="newsValues[i + 1]" style="height: 120px;">
+                <div class="col-4 border mx-2 my-3 rounded" *ngIf="newsValues[i + 1]" style="height: 120px;">
                   <div (click)="open(content); viewCard(newsValues[i+1])" data-toggle="modal" data-target="#myModal"
                     class="row h-100 align-items-center">
                     <div class="col-3 h-75 rounded">
@@ -287,27 +371,42 @@
                 </div>
                 <div class="col mx-2 my-3" *ngIf="!newsValues[i + 1]"></div>
               </div>
+              <div class="row justify-content-center d-md-none">
+                <div class="col-12 border mx-2 my-2 rounded" style="height: 320px; width: 95% !important;">
+                  <div (click)="open(content); viewCard(news)" class="h-100 align-items-center">
+                    <div class="h-65 mb-1 mt-3 rounded">
+                      <img class="img-fluid rounded" src="{{news.image}}"
+                        style="height: 220px; width: 100%; object-fit: cover;">
+                    </div>
+                    <p class="mb-3 text-center">{{news.headline}}</p>
+                  </div>
+                </div>
+              </div>
             </ng-container>
           </div>
         </ng-template>
       </li>
-      <li [ngbNavItem]="3" class="mx-auto col-3 d-flex justify-content-center" [class.active]="active === 3">
+      <li [ngbNavItem]="3" class="mx-auto col-5 col-md-3 d-flex justify-content-center" style="white-space: nowrap;"
+        [class.active]="active === 3">
         <button [class.button-active]="active === 3"
           style="text-align: center; border: 0; background-color: transparent; color: gray; font-weight: 600; font-size: 15px"
           ngbNavLink>Charts</button>
         <ng-template ngbNavContent>
-          <div class="d-flex justify-content-center">
-            <highcharts-chart class="mt-4 mb-4" [(update)]="updateFlag2" [Highcharts]="Highcharts"
-              [options]="chartOptions1" style="width: 70%; height: 800px; display: block;">
-            </highcharts-chart>
+          <div class="row justify-content-center">
+            <div class="col-11 col-md-8">
+              <highcharts-chart class="mt-4 mb-4" [(update)]="updateFlag2" [Highcharts]="Highcharts"
+                [options]="chartOptions1" [oneToOne]="true" style="height: 800px; display: block;">
+              </highcharts-chart>
+            </div>
           </div>
         </ng-template>
       </li>
-      <li [ngbNavItem]="4" class="mx-auto col-3 d-flex justify-content-center" [class.active]="active === 4">
+      <li [ngbNavItem]="4" class="mx-auto col-5 col-md-3 d-flex justify-content-center" style="white-space: nowrap;"
+        [class.active]="active === 4">
         <button [class.button-active]="active === 4"
           style="text-align: center; border: 0; background-color: transparent; color: gray; font-weight: 600; font-size: 15px"
           ngbNavLink>Insights</button>
-        <ng-template *ngIf = "sentiments.length != 0" ngbNavContent>
+        <ng-template *ngIf="sentiments.length != 0" ngbNavContent>
           <div class="mt-4 d-flex justify-content-center flex-column align-items-center">
             <p class="h2">Insider Sentiments</p>
             <table class="table w-25 text-center">
@@ -321,29 +420,29 @@
               <tbody>
                 <tr>
                   <th class="align-middle">Total</th>
-                  <td class="align-middle">{{sentiments[0]}}</td>
+                  <td class="align-middle">{{sentiments[0].toFixed(2)}}</td>
                   <td class="align-middle">{{sentiments[3]}}</td>
                 </tr>
                 <tr>
                   <th class="align-middle">Positive</th>
-                  <td class="align-middle">{{sentiments[1]}}</td>
+                  <td class="align-middle">{{sentiments[1].toFixed(2)}}</td>
                   <td class="align-middle">{{sentiments[4]}}</td>
                 </tr>
                 <tr>
                   <th class="align-middle">Negative</th>
-                  <td class="align-middle">{{sentiments[2]}}</td>
+                  <td class="align-middle">{{sentiments[2].toFixed(2)}}</td>
                   <td class="align-middle">{{sentiments[5]}}</td>
                 </tr>
               </tbody>
             </table>
           </div>
-          <div class="row justify-content-center align-items-center" style="width: 70%; margin: 0 auto;">
-            <div class="col-12 col-md-6">
+          <div class="row justify-content-center align-items-center" style="margin: 0 auto;">
+            <div class="col-11 col-md-4">
               <highcharts-chart class="mt-4 mb-4" [(update)]="updateFlag3" [Highcharts]="Highcharts"
                 [options]="chartOptions2" style="width: 100%; height: 400px; display: block; margin: 0 auto;">
               </highcharts-chart>
             </div>
-            <div class="col-12 col-md-6">
+            <div class="col-11 col-md-4">
               <highcharts-chart class="mt-4 mb-4" [(update)]="updateFlag4" [Highcharts]="Highcharts"
                 [options]="chartOptions3" style="width: 100%; height: 400px; display: block; margin: 0 auto;">
               </highcharts-chart>
@@ -352,6 +451,9 @@
         </ng-template>
       </li>
     </ul>
+    <button (click)="scrollRight()" style="position: sticky; margin-left: 10px;" class="arrows d-block d-sm-none">
+      <i class="bi bi-chevron-right" style="font-size: 1rem;"></i>
+    </button>
   </div>
   <div [ngbNavOutlet]="nav" class="mt-2"></div>
 </div>

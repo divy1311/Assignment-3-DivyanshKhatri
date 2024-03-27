@@ -3,6 +3,8 @@ import {
   Component,
   OnInit,
   AfterViewInit,
+  ElementRef,
+  ViewChild
 } from '@angular/core';
 import { FormControl } from '@angular/forms';
 import { HomeService } from '../../home/home.service';
@@ -22,7 +24,7 @@ import { Sentiments } from '../../models/sentiments';
 import { catchError } from 'rxjs/operators';
 import { of } from 'rxjs';
 import { DataService } from '../../data.service';
-
+import { ThemePalette } from '@angular/material/core';
 
 HC_SMA(HighchartsHighStock);
 HC_volume(HighchartsHighStock);
@@ -32,11 +34,11 @@ HC_volume(HighchartsHighStock);
   templateUrl: './search-details.component.html',
   styleUrl: './search-details.component.css',
 })
-export class SearchDetailsComponent implements OnInit, AfterViewInit {
 
-parseInt(value: string) {
-  return parseInt(value);
-}
+export class SearchDetailsComponent implements OnInit, AfterViewInit {
+  parseInt(value: string) {
+    return parseInt(value);
+  }
 
   encodeURI(str: string): string {
     return encodeURIComponent(str);
@@ -57,6 +59,10 @@ parseInt(value: string) {
 
   alerts1: Alert[] = [];
 
+  watchlistAlert: Alert[] = [];
+
+  buySellAlert: Alert[] = [];
+
   timeNow = Date.now();
 
   quantity: number = 0;
@@ -67,8 +73,36 @@ parseInt(value: string) {
 
   wallet: number = 0;
 
+  oldPrice: number = 0;
+
+  displaySpinner = true;
+
+  color: ThemePalette = 'primary';
+
   close(alert: Alert) {
     this.alerts = [];
+    this.watchlistAlert = [];
+  }
+
+  closeBuySellAlert(alert: Alert) {
+    this.buySellAlert = [];
+  }
+
+  @ViewChild('scrollableList') scrollableList!: ElementRef;
+
+  ngAfterViewInit() {
+    this.createGraph();
+    this.createStackedColumnGraph();
+    this.createSplineChart();
+  }
+
+
+  scrollLeft() {
+    this.scrollableList.nativeElement.scrollBy({ left: -100, behavior: 'smooth' });
+  }
+
+  scrollRight() {
+    this.scrollableList.nativeElement.scrollBy({ left: 100, behavior: 'smooth' });
   }
 
   viewCard(news: any) {
@@ -80,59 +114,103 @@ parseInt(value: string) {
     this.homeService.getWallet().subscribe((data) => {
       this.quantity = 0;
       this.wallet = parseInt(data);
-      this.homeService.checkStock(this.formControl.value).subscribe((data) => {
-        console.log(data.quantity);
-        this.quantityBought = data.quantity;
-      });
-    })
+      this.homeService
+        .checkStock(this.formControl.value, this.stock.name)
+        .subscribe((data) => {
+          console.log(data.quantity);
+          this.quantityBought = data.quantity;
+          this.oldPrice = data.price;
+        });
+    });
   }
 
   numberOnly(event: any): boolean {
-    const charCode = (event.which) ? event.which : event.keyCode;
+    const charCode = event.which ? event.which : event.keyCode;
     if (charCode > 31 && (charCode < 48 || charCode > 57)) {
       return false;
     }
     return true;
   }
 
-  buyStock(newAmount: number, newQuantity: number) {
-    console.log("New Quantity: " + newQuantity);
-    this.homeService.updateWallet(newAmount).pipe(
-      catchError(error => {
-        console.error(error);
-        return of(null);
-      })
-    ).subscribe(() => {
-      this.homeService.sellStock(this.formControl.value, newQuantity);
-      this.displaySell = true;
+  buyStock(newAmount: number, newQuantity: number, avgPrice: number) {
+    console.log('New Quantity: ' + newQuantity);
+    console.log('Avg Price: ' + avgPrice);
+    this.homeService
+      .updateWallet(newAmount)
+      .pipe(
+        catchError((error) => {
+          console.error(error);
+          return of(null);
+        })
+      )
+      .subscribe(() => {
+        this.homeService.updateStock(
+          this.formControl.value,
+          this.stock.name,
+          newQuantity,
+          avgPrice
+        );
+        this.displaySell = true;
+      });
+    this.buySellAlert.push({
+      type: 'success',
+      message: this.formControl.value + ' bought successfully.',
     });
     this.modalService.dismissAll();
   }
 
   sellStock(amount: number, newQuantity: number) {
-    console.log("New Quantity: Sell: " + newQuantity);
-    this.homeService.updateWallet(amount).pipe(
-      catchError(error => {
-        console.error(error);
-        return of(null);
-      })
-    ).subscribe(() => {
-      this.homeService.sellStock(this.formControl.value, newQuantity);
+    console.log('New Quantity: Sell: ' + newQuantity);
+    this.homeService
+      .updateWallet(amount)
+      .pipe(
+        catchError((error) => {
+          console.error(error);
+          return of(null);
+        })
+      )
+      .subscribe(() => {
+        this.homeService.updateStock(
+          this.formControl.value,
+          this.stock.name,
+          newQuantity,
+          this.oldPrice
+        );
+      });
+    this.buySellAlert.push({
+      type: 'danger',
+      message: this.formControl.value + ' sold successfully.',
     });
-
     this.modalService.dismissAll();
+  }
+
+  calculateAvgPrice(
+    newQuantity: number,
+    newPrice: number,
+    currentQuantity: number,
+    oldPrice: number
+  ): number {
+    console.log('New Quantity: ' + newQuantity);
+    console.log('New Price: ' + newPrice);
+    console.log('Current Quantity: ' + currentQuantity);
+    console.log('Old Price: ' + oldPrice);
+    return (
+      (newQuantity * newPrice + currentQuantity * oldPrice) /
+      (currentQuantity + newQuantity)
+    );
   }
 
   open2(content: any) {
     this.modalService.open(content, { ariaLabelledBy: 'modal-sell' });
     this.homeService.getWallet().subscribe((data) => {
       this.wallet = parseInt(data);
-      this.homeService.checkStock(this.formControl.value).subscribe((data) => {
-        this.sellQuantity = 0;
-        this.quantityBought = data.quantity;
-      });
-    })
-
+      this.homeService
+        .checkStock(this.formControl.value, this.stock.name)
+        .subscribe((data) => {
+          this.sellQuantity = 0;
+          this.quantityBought = data.quantity;
+        });
+    });
   }
 
   open(content: any) {
@@ -142,6 +220,8 @@ parseInt(value: string) {
   selectedNews: News = {} as News;
 
   formControl = new FormControl();
+
+  watchlistPressed = false;
 
   isLoading: boolean = false;
 
@@ -172,7 +252,10 @@ parseInt(value: string) {
   time: number = 0;
 
   Highcharts: typeof HighchartsHighStock = HighchartsHighStock;
+
   chartOptions: Highcharts.Options = {};
+
+  renderChart = false;
 
   chartOptions1: Highcharts.Options = {
     series: [
@@ -211,23 +294,27 @@ parseInt(value: string) {
 
   filteredStocks!: Observable<StockDetail[]>;
 
-  ngAfterViewInit(): void {
-    this.createGraph();
-    this.createStackedColumnGraph();
-    this.createSplineChart();
-  }
-
   ngOnInit() {
     this.route.params.forEach((param) => {
       this.formControl.setValue(param['ticker']);
       this.search();
     });
     this.homeService.stocksBought().subscribe((data) => {
-      data.forEach((s) => {
-        if (this.formControl.value === s.stock && s.quantity > 0) {
-          this.displaySell = true;
-          this.quantityBought = s.quantity;
-
+      if (data.length !== 0) {
+        data.forEach((s) => {
+          if (this.formControl.value === s.stock && s.quantity > 0) {
+            this.displaySell = true;
+            this.quantityBought = s.quantity;
+            this.oldPrice = s.price;
+          }
+        });
+      }
+    });
+    this.homeService.getWatchlist().subscribe((data) => {
+      console.log(JSON.stringify(data));
+      data.forEach((watchlist) => {
+        if (watchlist.ticker === this.formControl.value) {
+          this.watchlistPressed = true;
         }
       });
     });
@@ -261,11 +348,28 @@ parseInt(value: string) {
     });
   }
 
-  search(): void {
+  watchlist(): void {
+    this.watchlistPressed = !this.watchlistPressed;
+    if (this.watchlistPressed) {
+      this.homeService.addToWatchlist(this.formControl.value, this.stock.name).subscribe();
+      this.watchlistAlert.push({
+        type: 'success',
+        message: this.formControl.value + ' added to watchlist.',
+      });
+    } else {
+      this.homeService.removeFromWatchlist(this.formControl.value).subscribe();
+      this.watchlistAlert.push({
+        type: 'danger',
+        message: this.formControl.value + ' removed from watchlist.',
+      });
+    }
+  }
 
+  search(): void {
     this.alerts = [];
     this.alerts1 = [];
     let ticker = this.formControl.value;
+    this.watchlistPressed = false;
     if (ticker === '') {
       this.alerts.push({
         type: 'danger',
@@ -275,25 +379,30 @@ parseInt(value: string) {
     }
     this.displaySell = false;
     this.homeService.stocksBought().subscribe((data) => {
-      data.forEach((s) => {
-        if (ticker === s.stock) {
-          this.displaySell = true;
-        }
-      });
+      if (data.length !== 0) {
+        data.forEach((s) => {
+          if (ticker === s.stock && s.quantity > 0) {
+            this.displaySell = true;
+          }
+        });
+      }
     });
 
-    this.homeService.checkIfTickerCorrect(ticker).pipe(
-      catchError((error) => {
-        console.log('API call failed: ', error);
-        this.wrongStock = true;
-        this.alerts1.push({
-          type: 'danger',
-          message: 'No data found. Please enter a valid Ticker',
-        });
-        this.dataService.setAllToDefault();
-        return of(null);
-      })
-    ).subscribe();
+    this.homeService
+      .checkIfTickerCorrect(ticker)
+      .pipe(
+        catchError((error) => {
+          console.log('API call failed: ', error);
+          this.wrongStock = true;
+          this.alerts1.push({
+            type: 'danger',
+            message: 'No data found. Please enter a valid Ticker',
+          });
+          this.dataService.setAllToDefault();
+          return of(null);
+        })
+      )
+      .subscribe();
 
     this.displayData(ticker);
   }
@@ -305,6 +414,7 @@ parseInt(value: string) {
     });
 
     this.homeService.quote(ticker).subscribe((data) => {
+      this.displaySpinner = false;
       this.quote = data;
       if (data.t * 1000 - Date.now() > 300) {
         this.marketClosed = true;
@@ -315,7 +425,7 @@ parseInt(value: string) {
     this.homeService.chart(ticker, 'true').subscribe((data) => {
       this.chart = data.results;
       this.chartValues = [];
-      console.log(Date.now() - (data.t * 1000));
+      console.log(Date.now() - data.t * 1000);
       this.chart.forEach((d) => {
         this.chartValues.push([d['t'], d['c']]);
       });
@@ -344,8 +454,7 @@ parseInt(value: string) {
             name: 'Stock Price',
             data: this.chartValues,
             type: 'line',
-            color:
-              Date.now() - this.time > 300 ? 'red' : 'green',
+            color: Date.now() - this.time > 300 ? 'red' : 'green',
             threshold: null,
             marker: {
               enabled: false,
@@ -401,8 +510,6 @@ parseInt(value: string) {
         this.sentiments[0] += s.mspr;
       });
     });
-
-    this.createGraph();
     this.createStackedColumnGraph();
     this.createSplineChart();
 
@@ -568,6 +675,7 @@ parseInt(value: string) {
   }
 
   createStackedColumnGraph(): void {
+    console.log('Creating stacked column graph');
     let ticker = this.formControl.value;
     let strongBuy: number[] = [];
     let buy: number[] = [];
@@ -600,6 +708,7 @@ parseInt(value: string) {
       this.chartOptions2 = {
         chart: {
           type: 'column',
+          height: 400,
           backgroundColor: 'rgb(248, 248, 248)',
         },
         title: {
@@ -654,6 +763,7 @@ parseInt(value: string) {
   }
 
   createSplineChart(): void {
+    console.log('Creating spline chart');
     let ticker = this.formControl.value;
     this.homeService.earnings(ticker).subscribe((data) => {
       let earnings = data;
@@ -667,6 +777,7 @@ parseInt(value: string) {
       });
       this.chartOptions3 = {
         chart: {
+          height: 400,
           type: 'spline',
           backgroundColor: 'rgb(248, 248, 248)',
         },
@@ -694,6 +805,7 @@ parseInt(value: string) {
       };
       this.updateFlag4 = true;
     });
+    this.updateFlag4 = true;
   }
 
   isEmptyObject(obj: Object): boolean {
@@ -713,5 +825,8 @@ parseInt(value: string) {
   resetAlerts(): void {
     this.alerts = [];
     this.alerts1 = [];
+    this.watchlistAlert = [];
   }
 }
+
+
