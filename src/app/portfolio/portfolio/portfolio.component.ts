@@ -12,7 +12,7 @@ import { ThemePalette } from '@angular/material/core';
   styleUrl: './portfolio.component.css',
 })
 export class PortfolioComponent implements OnInit {
-
+  buySellAlert: Alert[] = [];
   color: ThemePalette = 'primary';
   wallet: string = '';
   stocksBought: StocksBought[] = [];
@@ -104,7 +104,11 @@ export class PortfolioComponent implements OnInit {
                     });
                 }
               });
-              this.modalService.dismissAll(); // Moved inside the subscribe() method
+              this.buySellAlert.push({
+                type: 'success',
+                message: stock.stock + ' bought successfully.',
+              });
+              this.modalService.dismissAll();
             });
           });
         });
@@ -115,6 +119,10 @@ export class PortfolioComponent implements OnInit {
   open2(content: any, stock: StocksBought): void {
     this.modalService.open(content, { ariaLabelledBy: 'modal-sell' });
     this.sellQuantity = 0;
+  }
+
+  closeBuySellAlert(alert: Alert) {
+    this.buySellAlert = [];
   }
 
   sellStock(stock: StocksBought, newAmount: number, newQuantity: number) {
@@ -159,6 +167,10 @@ export class PortfolioComponent implements OnInit {
                 });
               }
               this.modalService.dismissAll();
+              this.buySellAlert.push({
+                type: 'danger',
+                message: stock.stock + ' sold successfully.',
+              });
             });
           });
         });

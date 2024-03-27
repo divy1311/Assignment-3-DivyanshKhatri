@@ -1,5 +1,10 @@
 <div class="container" style="margin-top: 100px;">
   <div class="m-2 m-md-0">
+    <ngb-alert *ngIf="buySellAlert.length > 0" [type]="buySellAlert[0].type" (closed)="closeBuySellAlert(buySellAlert[0])"
+      class="mt-1 w-75 mx-auto text-center">
+      {{ buySellAlert[0].message }}
+    </ngb-alert>
+
     <div class="h1 font-weight-bold" style="letter-spacing: 2px;">My Portfolio</div>
     <div class="h3" *ngIf="!displaySpinner">Money in Wallet: ${{this.wallet}}</div>
   </div>
