@@ -7,19 +7,19 @@
     <ul class="navbar-nav">
       <li class="nav-item">
         <div class="border-transparent" [class.border]="selectedItem === 'search'">
-          <a class="nav-link" [routerLink]=" isTickerPresent ? ['/search', ticker] : ['/search', 'home']"
+          <a class="nav-link px-lg-1 px-2" [routerLink]=" isTickerPresent ? ['/search', ticker] : ['/search', 'home']"
             (click)="selectedItem = 'search'; checkTicker()" [class.active]="isSearchRoute()">Search</a>
         </div>
       </li>
       <li class="nav-item">
         <div class="border-transparent" [class.border]="selectedItem === 'watchlist'">
-          <a class="nav-link" routerLink="/watchlist" (click)="selectedItem = 'watchlist'; saveTickerValue()"
+          <a class="nav-link px-lg-1 px-2" routerLink="/watchlist" (click)="selectedItem = 'watchlist'; saveTickerValue()"
             routerLinkActive="active">Watchlist</a>
         </div>
       </li>
       <li class="nav-item">
         <div class="border-transparent" [class.border]="selectedItem === 'portfolio'">
-          <a class="nav-link" routerLink="/portfolio" (click)="selectedItem = 'portfolio'; saveTickerValue()"
+          <a class="nav-link px-lg-1 px-2" routerLink="/portfolio" (click)="selectedItem = 'portfolio'; saveTickerValue()"
             routerLinkActive="active">Portfolio</a>
         </div>
       </li>

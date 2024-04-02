@@ -35,6 +35,8 @@ import { RouterModule } from '@angular/router';
   ],
   providers: [
     provideAnimationsAsync()
+
+    
   ],
   bootstrap: [AppComponent]
 })

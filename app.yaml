@@ -1,0 +1,7 @@
+runtime: python311
+handlers:
+  - url: /
+    static_files: dist/assignment-3/browser/index.html
+    upload: dist/assignment-3/browser/index.html
+  - url: /
+    static_dir: dist/assignment-3/browser

@@ -4,14 +4,14 @@ import {
   OnInit,
   AfterViewInit,
   ElementRef,
-  ViewChild
+  ViewChild,
 } from '@angular/core';
 import { FormControl } from '@angular/forms';
 import { HomeService } from '../../home/home.service';
 import { Stock } from '../../models/stock';
 import { Chart } from '../../models/chart';
 import { Quote } from '../../models/quote';
-import { Observable, debounceTime, finalize, map, switchMap, tap } from 'rxjs';
+import { Observable, Subscription, debounceTime, finalize, map, switchMap, tap } from 'rxjs';
 import { StockDetail } from '../../models/stock-detail';
 import { ActivatedRoute, Router } from '@angular/router';
 import { News } from '../../models/news';
@@ -21,10 +21,11 @@ import HC_volume from 'highcharts/indicators/volume-by-price';
 import * as HighchartsHighStock from 'highcharts/highstock';
 import { Alert } from '../../models/alert';
 import { Sentiments } from '../../models/sentiments';
-import { catchError } from 'rxjs/operators';
+import { catchError, concatMap, exhaustAll, exhaustMap, mergeMap } from 'rxjs/operators';
 import { of } from 'rxjs';
 import { DataService } from '../../data.service';
 import { ThemePalette } from '@angular/material/core';
+import { tick } from '@angular/core/testing';
 
 HC_SMA(HighchartsHighStock);
 HC_volume(HighchartsHighStock);
@@ -34,7 +35,6 @@ HC_volume(HighchartsHighStock);
   templateUrl: './search-details.component.html',
   styleUrl: './search-details.component.css',
 })
-
 export class SearchDetailsComponent implements OnInit, AfterViewInit {
   parseInt(value: string) {
     return parseInt(value);
@@ -63,7 +63,7 @@ export class SearchDetailsComponent implements OnInit, AfterViewInit {
 
   buySellAlert: Alert[] = [];
 
-  timeNow = Date.now();
+  timeNow = Math.floor(Date.now() / 1000);
 
   quantity: number = 0;
 
@@ -77,6 +77,8 @@ export class SearchDetailsComponent implements OnInit, AfterViewInit {
 
   displaySpinner = true;
 
+  isMarketClosed = true;
+
   color: ThemePalette = 'primary';
 
   close(alert: Alert) {
@@ -89,20 +91,25 @@ export class SearchDetailsComponent implements OnInit, AfterViewInit {
   }
 
   @ViewChild('scrollableList') scrollableList!: ElementRef;
+  @ViewChild('scrollableElement') scrollableElement!: ElementRef;
 
   ngAfterViewInit() {
-    this.createGraph();
     this.createStackedColumnGraph();
     this.createSplineChart();
   }
 
-
   scrollLeft() {
-    this.scrollableList.nativeElement.scrollBy({ left: -100, behavior: 'smooth' });
+    this.scrollableList.nativeElement.scrollBy({
+      left: -100,
+      behavior: 'smooth',
+    });
   }
 
   scrollRight() {
-    this.scrollableList.nativeElement.scrollBy({ left: 100, behavior: 'smooth' });
+    this.scrollableList.nativeElement.scrollBy({
+      left: 100,
+      behavior: 'smooth',
+    });
   }
 
   viewCard(news: any) {
@@ -110,12 +117,14 @@ export class SearchDetailsComponent implements OnInit, AfterViewInit {
   }
 
   open1(content: any) {
+    let ticker: string = this.formControl.value;
+    ticker = ticker.toUpperCase();
     this.modalService.open(content, { ariaLabelledBy: 'modal-buy' });
     this.homeService.getWallet().subscribe((data) => {
       this.quantity = 0;
-      this.wallet = parseInt(data);
+      this.wallet = parseFloat(parseFloat(data).toFixed(2));
       this.homeService
-        .checkStock(this.formControl.value, this.stock.name)
+        .checkStock(ticker, this.stock.name)
         .subscribe((data) => {
           console.log(data.quantity);
           this.quantityBought = data.quantity;
@@ -133,6 +142,8 @@ export class SearchDetailsComponent implements OnInit, AfterViewInit {
   }
 
   buyStock(newAmount: number, newQuantity: number, avgPrice: number) {
+    let ticker: string = this.formControl.value;
+    ticker = ticker.toUpperCase();
     console.log('New Quantity: ' + newQuantity);
     console.log('Avg Price: ' + avgPrice);
     this.homeService
@@ -145,7 +156,7 @@ export class SearchDetailsComponent implements OnInit, AfterViewInit {
       )
       .subscribe(() => {
         this.homeService.updateStock(
-          this.formControl.value,
+          ticker,
           this.stock.name,
           newQuantity,
           avgPrice
@@ -154,12 +165,17 @@ export class SearchDetailsComponent implements OnInit, AfterViewInit {
       });
     this.buySellAlert.push({
       type: 'success',
-      message: this.formControl.value + ' bought successfully.',
+      message: ticker + ' bought successfully.',
     });
+    setTimeout(() => {
+      this.buySellAlert = [];
+    }, 3000)
     this.modalService.dismissAll();
   }
 
   sellStock(amount: number, newQuantity: number) {
+    let ticker = this.formControl.value;
+    ticker = ticker.toUpperCase();
     console.log('New Quantity: Sell: ' + newQuantity);
     this.homeService
       .updateWallet(amount)
@@ -171,7 +187,7 @@ export class SearchDetailsComponent implements OnInit, AfterViewInit {
       )
       .subscribe(() => {
         this.homeService.updateStock(
-          this.formControl.value,
+          ticker,
           this.stock.name,
           newQuantity,
           this.oldPrice
@@ -179,7 +195,24 @@ export class SearchDetailsComponent implements OnInit, AfterViewInit {
       });
     this.buySellAlert.push({
       type: 'danger',
-      message: this.formControl.value + ' sold successfully.',
+      message: ticker + ' sold successfully.',
+    });
+    setTimeout(() => {
+      this.buySellAlert = [];
+    }, 3000)
+    this.homeService.stocksBought().subscribe((data) => {
+      let found = false;
+      if (data.length !== 0) {
+        data.forEach((s) => {
+          if (ticker === s.stock && s.quantity == 0) {
+            found = true;
+            this.displaySell = false;
+          }
+        });
+        if (!found) {
+          this.displaySell = false;
+        }
+      }
     });
     this.modalService.dismissAll();
   }
@@ -201,11 +234,13 @@ export class SearchDetailsComponent implements OnInit, AfterViewInit {
   }
 
   open2(content: any) {
+    let ticker: string = this.formControl.value;
+    ticker = ticker.toUpperCase();
     this.modalService.open(content, { ariaLabelledBy: 'modal-sell' });
     this.homeService.getWallet().subscribe((data) => {
-      this.wallet = parseInt(data);
+      this.wallet = parseFloat(parseFloat(data).toFixed(2));
       this.homeService
-        .checkStock(this.formControl.value, this.stock.name)
+        .checkStock(ticker, this.stock.name)
         .subscribe((data) => {
           this.sellQuantity = 0;
           this.quantityBought = data.quantity;
@@ -272,6 +307,10 @@ export class SearchDetailsComponent implements OnInit, AfterViewInit {
 
   displaySell = false;
 
+  displaySummaryChart = false;
+
+  displayChart = false;
+
   chartOptions2: Highcharts.Options = {};
 
   chartOptions3: Highcharts.Options = {};
@@ -294,15 +333,47 @@ export class SearchDetailsComponent implements OnInit, AfterViewInit {
 
   filteredStocks!: Observable<StockDetail[]>;
 
+  changePositive = false;
+
   ngOnInit() {
+
+    this.route.params.subscribe((params) => {
+      if (params['peer']) {
+        let peer = params['peer'];
+        this.formControl.setValue(peer);
+        this.search();
+      } else {
+        this.formControl.valueChanges.pipe(
+          debounceTime(300),
+        ).subscribe(value => {
+          this.isLoading = true;
+          this.homeService.stockNames(value).subscribe(stockDetailsArray => {
+            this.filteredStocks = of(stockDetailsArray.filter(
+              stockDetails =>
+                stockDetails.type === 'Common Stock' &&
+                !stockDetails.displaySymbol.includes('.')
+            ));
+            this.isLoading = false;
+          });
+        });
+      }
+    });
+
+    this.updateTimeNow();
+    setInterval(() => this.updateTimeNow(), 15000);
+
+    setInterval(() => this.updateQuote(), 15000);
+
     this.route.params.forEach((param) => {
-      this.formControl.setValue(param['ticker']);
+      this.formControl.setValue(param['ticker'].toUpperCase());
       this.search();
     });
     this.homeService.stocksBought().subscribe((data) => {
+      let ticker = this.formControl.value;
+      ticker = ticker.toUpperCase();
       if (data.length !== 0) {
         data.forEach((s) => {
-          if (this.formControl.value === s.stock && s.quantity > 0) {
+          if (ticker === s.stock && s.quantity > 0) {
             this.displaySell = true;
             this.quantityBought = s.quantity;
             this.oldPrice = s.price;
@@ -311,56 +382,55 @@ export class SearchDetailsComponent implements OnInit, AfterViewInit {
       }
     });
     this.homeService.getWatchlist().subscribe((data) => {
+      let ticker = this.formControl.value;
+      ticker = ticker.toUpperCase();
       console.log(JSON.stringify(data));
       data.forEach((watchlist) => {
-        if (watchlist.ticker === this.formControl.value) {
+        if (watchlist.ticker.toUpperCase() === ticker) {
           this.watchlistPressed = true;
         }
       });
     });
-    this.route.params.subscribe((params) => {
-      if (params['peer']) {
-        let peer = params['peer'];
-        this.formControl.setValue(peer);
-        this.search();
+  }
+
+  updateTimeNow() {
+    this.timeNow = Date.now();
+  }
+
+  canScrollLeft(element: HTMLElement): boolean {
+    return element.scrollLeft > 0;
+  }
+
+  updateQuote(): void {
+    this.homeService.quoteEvery15Sec(this.formControl.value).subscribe((data) => {
+      this.quote = data;
+      console.log('Time: ' + data.t * 1000 + "current time: " + Date.now());
+      if (Math.abs(data.t * 1000 - Date.now()) > 300*1000) {
+        this.marketClosed = true;
       } else {
-        this.filteredStocks = this.formControl.valueChanges.pipe(
-          debounceTime(300),
-          tap(() => {
-            this.isLoading = true;
-          }),
-          switchMap((value) =>
-            this.homeService.stockNames(value).pipe(
-              map((stockDetailsArray) =>
-                stockDetailsArray.filter(
-                  (stockDetails) =>
-                    stockDetails.type === 'Common Stock' &&
-                    !stockDetails.displaySymbol.includes('.')
-                )
-              ),
-              finalize(() => {
-                this.isLoading = false;
-              })
-            )
-          )
-        );
+        this.marketClosed = false;
       }
+      this.time = data.t * 1000;
     });
   }
 
   watchlist(): void {
+    let ticker: string = this.formControl.value;
+    ticker = ticker.toUpperCase();
     this.watchlistPressed = !this.watchlistPressed;
     if (this.watchlistPressed) {
-      this.homeService.addToWatchlist(this.formControl.value, this.stock.name).subscribe();
+      this.homeService
+        .addToWatchlist(ticker, this.stock.name)
+        .subscribe();
       this.watchlistAlert.push({
         type: 'success',
-        message: this.formControl.value + ' added to watchlist.',
+        message: ticker + ' added to watchlist.',
       });
     } else {
-      this.homeService.removeFromWatchlist(this.formControl.value).subscribe();
+      this.homeService.removeFromWatchlist(ticker).subscribe();
       this.watchlistAlert.push({
         type: 'danger',
-        message: this.formControl.value + ' removed from watchlist.',
+        message: ticker + ' removed from watchlist.',
       });
     }
   }
@@ -370,6 +440,7 @@ export class SearchDetailsComponent implements OnInit, AfterViewInit {
     this.alerts1 = [];
     let ticker = this.formControl.value;
     this.watchlistPressed = false;
+    this.displaySpinner = false;
     if (ticker === '') {
       this.alerts.push({
         type: 'danger',
@@ -377,6 +448,7 @@ export class SearchDetailsComponent implements OnInit, AfterViewInit {
       });
       return;
     }
+    ticker = ticker.toUpperCase();
     this.displaySell = false;
     this.homeService.stocksBought().subscribe((data) => {
       if (data.length !== 0) {
@@ -389,7 +461,7 @@ export class SearchDetailsComponent implements OnInit, AfterViewInit {
     });
 
     this.homeService
-      .checkIfTickerCorrect(ticker)
+      .checkIfTickerCorrect(ticker.toUpperCase())
       .pipe(
         catchError((error) => {
           console.log('API call failed: ', error);
@@ -408,68 +480,97 @@ export class SearchDetailsComponent implements OnInit, AfterViewInit {
   }
 
   displayData(ticker: string): void {
-    this.router.navigate(['/search', this.formControl.value]);
+    ticker = ticker.toUpperCase();
+    this.router.navigate(['/search', ticker]);
     this.homeService.search(ticker).subscribe((data) => {
       this.stock = data;
     });
 
     this.homeService.quote(ticker).subscribe((data) => {
-      this.displaySpinner = false;
       this.quote = data;
-      if (data.t * 1000 - Date.now() > 300) {
+      console.log('Time: ' + data.t * 1000 + "current time: " + Date.now(), "difference =", data.t * 1000 - Date.now());
+      if (Math.abs(data.t * 1000 - Date.now()) > 300*1000) {
         this.marketClosed = true;
+      } else {
+        this.marketClosed = false;
+      }
+      if(data.d >= 0) {
+        this.changePositive = true;
+      } else {
+        this.changePositive = false;
       }
       this.time = data.t * 1000;
     });
 
-    this.homeService.chart(ticker, 'true').subscribe((data) => {
-      this.chart = data.results;
-      this.chartValues = [];
-      console.log(Date.now() - data.t * 1000);
-      this.chart.forEach((d) => {
-        this.chartValues.push([d['t'], d['c']]);
-      });
-      this.chartOptions = {
-        accessibility: {
-          enabled: true,
-        },
-        title: {
-          text: ticker + ' Hourly Price Variation',
-        },
-        chart: {
-          backgroundColor: 'rgb(248, 248, 248)',
-        },
-        yAxis: {
+    this.homeService
+      .chart(ticker, 'true')
+      .pipe(
+        catchError((error) => {
+          console.log('API call failed: ', error);
+          this.dataService.setAllToDefault();
+          return of(null);
+        })
+      )
+      .subscribe((data) => {
+        this.chart = data.results;
+        this.chartValues = [];
+        console.log(Date.now() - data.t * 1000);
+        this.chart.forEach((d) => {
+          this.chartValues.push([d['t'], d['c']]);
+        });
+        this.chartOptions = {
+          accessibility: {
+            enabled: true,
+          },
           title: {
-            text: 'Stock Price',
+            text: ticker + ' Hourly Price Variation',
           },
-          opposite: true,
-        },
-        xAxis: {
-          type: 'datetime',
-        },
-        series: [
-          {
-            id: 'stock',
-            name: 'Stock Price',
-            data: this.chartValues,
-            type: 'line',
-            color: Date.now() - this.time > 300 ? 'red' : 'green',
-            threshold: null,
-            marker: {
-              enabled: false,
+          chart: {
+            backgroundColor: 'rgb(248, 248, 248)',
+          },
+          yAxis: {
+            title: {
+              text: 'Stock Price',
             },
+            opposite: true,
           },
-        ],
-      };
-      this.updateFlag1 = true;
-    });
-
-    this.homeService.companyPeers(ticker).subscribe((data) => {
-      this.peers = data.filter((peer) => {
-        return !peer.includes('.');
+          xAxis: {
+            type: 'datetime',
+          },
+          series: [
+            {
+              id: 'stock',
+              name: 'Stock Price',
+              data: this.chartValues,
+              type: 'line',
+              color: this.changePositive ? 'green' : 'red',
+              threshold: null,
+              marker: {
+                enabled: false,
+              },
+            },
+          ],
+        };
+        this.displaySummaryChart = true;
+        this.updateFlag1 = true;
       });
-    });
+
+    this.homeService
+      .companyPeers(ticker)
+      .pipe(
+        catchError((error) => {
+          console.log('API call failed: ', error);
+          this.dataService.setAllToDefault();
+          return of(null);
+        })
+      )
+      .subscribe((data) => {
+        if (data) {
+          this.peers = data.filter((peer) => {
+            return !peer.includes('.');
+          });
+        }
+      });
 
     this.homeService.news(ticker).subscribe((data) => {
       this.newsValues = data
@@ -512,171 +613,188 @@ export class SearchDetailsComponent implements OnInit, AfterViewInit {
     });
     this.createStackedColumnGraph();
     this.createSplineChart();
-
+    this.createGraph();
     this.cdr.detectChanges();
   }
 
   navigateToHome(): void {
+    this.dataService.setAllToDefault();
     this.router.navigate(['/search/home']);
   }
 
   createGraph(): void {
     let ticker = this.formControl.value;
-    this.homeService.chart1(ticker, 'false').subscribe((data) => {
-      this.chart = data.results;
-      let candleStickValues: number[][] = [];
-      let volumeValues: number[][] = [];
-      this.chart.forEach((d) => {
-        candleStickValues.push([d['t'], d['o'], d['h'], d['l'], d['c']]);
-      });
-      this.chart.forEach((d) => {
-        volumeValues.push([d['t'], d['v']]);
-      });
-      this.chartOptions1 = {
-        title: {
-          text: ticker + ' Historical',
-        },
-        subtitle: {
-          text: 'With SMA and Volume by Price technical indicators',
-        },
-        chart: {
-          backgroundColor: 'rgb(248, 248, 248)',
-        },
-        yAxis: [
-          {
-            labels: {
-              align: 'right',
-              x: -3,
-            },
-            title: {
-              text: 'OHLC',
-            },
-            height: '60%',
-            lineWidth: 2,
-            lineColor: 'black',
-            offset: 2,
-            resize: {
-              enabled: true,
-            },
-            opposite: true,
+    ticker = ticker.toUpperCase();
+    this.homeService
+      .chart1(ticker, 'false')
+      .pipe(
+        catchError((error) => {
+          console.log('API call failed: ', error);
+          this.dataService.setAllToDefault();
+          return of(null);
+        })
+      )
+      .subscribe((data) => {
+        this.chart = data.results;
+        let candleStickValues: number[][] = [];
+        let volumeValues: number[][] = [];
+        this.chart.forEach((d) => {
+          candleStickValues.push([d['t'], d['o'], d['h'], d['l'], d['c']]);
+        });
+        this.chart.forEach((d) => {
+          volumeValues.push([d['t'], d['v']]);
+        });
+        this.chartOptions1 = {
+          title: {
+            text: ticker + ' Historical',
           },
-          {
-            labels: {
-              align: 'right',
-              x: -3,
-              y: -10,
+          subtitle: {
+            text: 'With SMA and Volume by Price technical indicators',
+          },
+          chart: {
+            backgroundColor: 'rgb(248, 248, 248)',
+          },
+          yAxis: [
+            {
+              labels: {
+                align: 'right',
+                x: -3,
+              },
+              title: {
+                text: 'OHLC',
+              },
+              height: '60%',
+              lineWidth: 2,
+              lineColor: 'black',
+              offset: 2,
+              resize: {
+                enabled: true,
+              },
+              opposite: true,
             },
-            title: {
-              text: 'Volume',
-            },
+            {
+              labels: {
+                align: 'right',
+                x: -3,
+                y: -10,
+              },
+              title: {
+                text: 'Volume',
+              },
 
-            top: '65%',
-            height: '35%',
-            offset: 2,
-            lineWidth: 2,
-            lineColor: 'black',
-            opposite: true,
-          },
-        ],
-        xAxis: {
-          type: 'datetime',
-          ordinal: true,
-        },
-        tooltip: {
-          split: true,
-        },
-        rangeSelector: {
-          enabled: true,
-          selected: 5,
-          buttons: [
-            {
-              type: 'month',
-              count: 1,
-              text: '1M',
-            },
-            {
-              type: 'month',
-              count: 3,
-              text: '3M',
-            },
-            {
-              type: 'month',
-              count: 6,
-              text: '6M',
-            },
-            {
-              type: 'ytd',
-              text: 'YTD',
-            },
-            {
-              type: 'year',
-              count: 1,
-              text: '1Y',
-            },
-            {
-              type: 'all',
-              text: 'All',
+              top: '65%',
+              height: '35%',
+              offset: 2,
+              lineWidth: 2,
+              lineColor: 'black',
+              opposite: true,
             },
           ],
-        },
-        navigator: {
-          enabled: true,
-          series: {
-            type: 'line',
-            data: candleStickValues,
+          xAxis: {
+            type: 'datetime',
+            ordinal: true,
           },
-        },
-        series: [
-          {
-            id: 'candlestick',
-            type: 'candlestick',
-            data: candleStickValues,
-            yAxis: 0,
+          tooltip: {
+            split: true,
           },
-          {
-            id: 'sma',
-            type: 'sma',
-            linkedTo: 'candlestick',
-            params: {
-              period: 14,
-            },
-            yAxis: 0,
-            color: 'orange',
-            marker: {
-              enabled: false,
-            },
+          rangeSelector: {
+            enabled: true,
+            selected: 2,
+            buttons: [
+              {
+                type: 'month',
+                count: 1,
+                text: '1M',
+              },
+              {
+                type: 'month',
+                count: 3,
+                text: '3M',
+              },
+              {
+                type: 'month',
+                count: 6,
+                text: '6M',
+              },
+              {
+                type: 'ytd',
+                text: 'YTD',
+              },
+              {
+                type: 'year',
+                count: 1,
+                text: '1Y',
+              },
+              {
+                type: 'all',
+                text: 'All',
+              },
+            ],
           },
-          {
-            id: 'volume',
-            type: 'column',
-            linkedTo: 'candlestick',
-            data: volumeValues,
-            yAxis: 1,
-            color: 'rgb(83, 71, 189)',
+          navigator: {
+            enabled: true,
+            series: {
+              type: 'line',
+              data: candleStickValues,
+            },
+
           },
-          {
-            id: 'vbp',
-            type: 'vbp',
-            linkedTo: 'candlestick',
-            params: {
-              volumeSeriesID: 'volume',
+          series: [
+            {
+              id: 'candlestick',
+              type: 'candlestick',
+              data: candleStickValues,
+              yAxis: 0,
             },
-            zoneLines: {
-              enabled: false,
+            {
+              id: 'sma',
+              type: 'sma',
+              linkedTo: 'candlestick',
+              params: {
+                period: 14,
+              },
+              yAxis: 0,
+              color: 'orange',
+              marker: {
+                enabled: false,
+              },
             },
-            dataLabels: {
-              enabled: false,
+            {
+              id: 'volume',
+              type: 'column',
+              linkedTo: 'candlestick',
+              data: volumeValues,
+              yAxis: 1,
+              color: 'rgb(83, 71, 189)',
             },
-          },
-        ],
-      };
-      this.updateFlag2 = true;
-    });
+            {
+              id: 'vbp',
+              type: 'vbp',
+              linkedTo: 'candlestick',
+              params: {
+                volumeSeriesID: 'volume',
+              },
+              zoneLines: {
+                enabled: false,
+              },
+              dataLabels: {
+                enabled: false,
+              },
+            },
+          ],
+          legend: {
+            enabled: false
+          }
+        };
+        this.displayChart = true;
+        this.updateFlag2 = true;
+      });
   }
 
   createStackedColumnGraph(): void {
     console.log('Creating stacked column graph');
     let ticker = this.formControl.value;
+    ticker = ticker.toUpperCase();
     let strongBuy: number[] = [];
     let buy: number[] = [];
     let hold: number[] = [];
@@ -739,22 +857,27 @@ export class SearchDetailsComponent implements OnInit, AfterViewInit {
           {
             name: 'Strong Buy',
             data: strongBuy,
+            color: 'rgb(24, 100, 55)',
           } as Highcharts.SeriesOptionsType,
           {
             name: 'Buy',
             data: buy,
+            color: 'rgb(30, 176, 87)'
           } as Highcharts.SeriesOptionsType,
           {
             name: 'Hold',
             data: hold,
+            color: 'rgb(176, 127, 52)'
           } as Highcharts.SeriesOptionsType,
           {
             name: 'Sell',
             data: sell,
+            color: 'rgb(241, 80, 87)'
           } as Highcharts.SeriesOptionsType,
           {
             name: 'Strong Sell',
             data: strongSell,
+            color: "rgb(117, 43, 46)"
           } as Highcharts.SeriesOptionsType,
         ],
       };
@@ -765,6 +888,7 @@ export class SearchDetailsComponent implements OnInit, AfterViewInit {
   createSplineChart(): void {
     console.log('Creating spline chart');
     let ticker = this.formControl.value;
+    ticker = ticker.toUpperCase();
     this.homeService.earnings(ticker).subscribe((data) => {
       let earnings = data;
       let actual: number[] = [];
@@ -773,7 +897,7 @@ export class SearchDetailsComponent implements OnInit, AfterViewInit {
       earnings.forEach((e) => {
         actual.push(e.actual);
         estimate.push(e.estimate);
-        periods.push(e.period + ' ' + e.surprise);
+        periods.push(e.period + '<br/> Surprise: ' + e.surprise);
       });
       this.chartOptions3 = {
         chart: {
@@ -786,6 +910,7 @@ export class SearchDetailsComponent implements OnInit, AfterViewInit {
         },
         xAxis: {
           categories: periods,
+          lineWidth: 2,
         },
         yAxis: {
           title: {
@@ -800,6 +925,7 @@ export class SearchDetailsComponent implements OnInit, AfterViewInit {
           {
             name: 'Estimate',
             data: estimate,
+            color: 'rgb(76, 69, 181)'
           } as Highcharts.SeriesOptionsType,
         ],
       };
@@ -828,5 +954,3 @@ export class SearchDetailsComponent implements OnInit, AfterViewInit {
     this.watchlistAlert = [];
   }
 }
-
-

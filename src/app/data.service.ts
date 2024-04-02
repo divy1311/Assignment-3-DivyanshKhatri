@@ -15,7 +15,7 @@ export class DataService {
 
   private quote: Quote = {} as Quote;
   private stockData: Stock = {} as Stock;
-  private ticker: string = "";
+  private tickersVisited: string[] = [];
   private chart: any = {};
   private chart1: any = {};
   private peers: string[] = [];
@@ -36,16 +36,16 @@ export class DataService {
     this.quote = quote;
   }
 
+  getTickersVisited(): string[] {
+    return this.tickersVisited;
+  }
+
+  setTickersVisited(ticker: string): void {
+    this.tickersVisited.push(ticker);
+  }
+
   getQuote(): Observable<Quote> {
     return of(this.quote);
-  }
-
-  setTicker(ticker: string): void {
-    this.ticker = ticker;
-  }
-
-  getTicker(): string {
-    return this.ticker;
   }
 
   setChart(chart: any): void {
@@ -105,9 +105,9 @@ export class DataService {
   }
 
   setAllToDefault(): void {
+    this.tickersVisited = [];
     this.quote = {} as Quote;
     this.stockData = {} as Stock;
-    this.ticker = "";
     this.chart = {};
     this.peers = [];
     this.news = [];
@@ -120,7 +120,6 @@ export class DataService {
     return of({
       quote: this.quote,
       stockData: this.stockData,
-      ticker: this.ticker,
       chart: this.chart,
       peers: this.peers,
       news: this.news,

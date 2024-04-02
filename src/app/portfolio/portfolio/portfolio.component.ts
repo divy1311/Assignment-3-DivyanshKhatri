@@ -3,7 +3,7 @@ import { HomeService } from '../../home/home.service';
 import { StocksBought } from '../../models/stocks-bought';
 import { NgbModal } from '@ng-bootstrap/ng-bootstrap';
 import { Alert } from '../../models/alert';
-import {MatProgressSpinnerModule} from '@angular/material/progress-spinner';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { ThemePalette } from '@angular/material/core';
 
 @Component({
@@ -29,9 +29,11 @@ export class PortfolioComponent implements OnInit {
   ngOnInit(): void {
     this.homeService.getWallet().subscribe((data) => {
       this.wallet = data;
+      this.wallet = parseFloat(this.wallet).toFixed(2);
       this.displaySpinner = false;
     });
     this.homeService.stocksBought().subscribe((data) => {
+      console.log('Stocks Bought: ' + JSON.stringify(data));
       data = data.filter((stock) => stock.quantity > 0);
       this.stocksBought = data;
       if (data.length === 0) {
@@ -53,6 +55,7 @@ export class PortfolioComponent implements OnInit {
                     : (data.c - stock.price).toFixed(2),
                   parseFloat((data.c * stock.quantity).toFixed(2)),
                 ]);
+                console.log(this.currentPrices);
               });
           }
         });
@@ -85,6 +88,7 @@ export class PortfolioComponent implements OnInit {
           this.homeService.getWallet().subscribe((data) => {
             console.log('Wallet: ' + data);
             this.wallet = data;
+            this.wallet = parseFloat(this.wallet).toFixed(2);
             this.homeService.stocksBought().subscribe((data) => {
               console.log('Stocks Bought: ' + JSON.stringify(data));
               data = data.filter((stock) => stock.quantity > 0);
@@ -108,6 +112,10 @@ export class PortfolioComponent implements OnInit {
                 type: 'success',
                 message: stock.stock + ' bought successfully.',
               });
+              setTimeout(() => {
+                this.buySellAlert = [];
+              }, 3000);
+
               this.modalService.dismissAll();
             });
           });
@@ -138,43 +146,44 @@ export class PortfolioComponent implements OnInit {
           this.homeService.getWallet().subscribe((data) => {
             console.log('Wallet: ' + data);
             this.wallet = data;
+            this.wallet = parseFloat(this.wallet).toFixed(2);
             this.homeService.stocksBought().subscribe((data) => {
               console.log('Stocks Bought: ' + JSON.stringify(data));
-              data = data.filter((stock) => stock.quantity > 0);
               this.stocksBought = data;
-              if (data.length === 0) {
-                this.alerts.push({
-                  type: 'warning',
-                  message:
-                    "Currently you don't have any stock in your portfolio.",
-                });
-                return;
-              } else {
-                data.forEach((stock) => {
-                  if (stock.quantity > 0) {
-                    this.homeService
-                      .quoteForPortfolio(stock.stock)
-                      .subscribe((data) => {
-                        this.currentPrices.set(stock.stock, [
-                          parseFloat(data.c.toFixed(2)),
-                          (data.c - stock.price).toFixed(2) === '-0.00'
-                            ? '0.00'
-                            : (data.c - stock.price).toFixed(2),
-                          parseFloat((data.c * stock.quantity).toFixed(2)),
-                        ]);
-                      });
-                  }
-                });
-              }
-              this.modalService.dismissAll();
               this.buySellAlert.push({
                 type: 'danger',
                 message: stock.stock + ' sold successfully.',
               });
+              setTimeout(() => {
+                this.buySellAlert = [];
+              }, 3000);
+              if (data.length === 0) {
+                this.alerts.push({
+                  type: 'warning',
+                  message: "Currently you don't have any stock in your portfolio.",
+                });
+                return;
+              }
+              data.forEach((stock) => {
+                if (stock.quantity > 0) {
+                  this.homeService
+                    .quoteForPortfolio(stock.stock)
+                    .subscribe((data) => {
+                      this.currentPrices.set(stock.stock, [
+                        parseFloat(data.c.toFixed(2)),
+                        (data.c - stock.price).toFixed(2) === '-0.00'
+                          ? '0.00'
+                          : (data.c - stock.price).toFixed(2),
+                        parseFloat((data.c * stock.quantity).toFixed(2)),
+                      ]);
+                    });
+                }
+                this.modalService.dismissAll();
+              });
             });
           });
         });
-        this.modalService.dismissAll();
+      this.modalService.dismissAll();
     });
   }
 

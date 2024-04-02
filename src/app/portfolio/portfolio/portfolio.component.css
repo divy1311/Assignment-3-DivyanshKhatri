@@ -1,0 +1,13 @@
+.no-style {
+  background: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.blue-text {
+  color: blue !important;
+  border-bottom: 1px solid blue !important;
+  background: transparent !important;
+}

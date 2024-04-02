@@ -29,12 +29,14 @@ export class AppComponent {
   isTickerPresent: boolean = false;
 
   checkTicker(): boolean {
-    return this.isTickerPresent = this.ticker !== "";
+    return this.isTickerPresent = this.ticker !== "" && this.ticker !== undefined;
   }
 
   saveTickerValue(): void {
-    const ticker = this.dataService.getTicker();
-    if (ticker !== "") {
+    let tickersVisited = this.dataService.getTickersVisited();
+    console.log(tickersVisited);
+    const ticker = tickersVisited[tickersVisited.length - 1];
+    if (ticker !== "" && ticker !== undefined) {
       this.ticker = ticker;
       this.isTickerPresent = true;
     }

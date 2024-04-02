@@ -61,7 +61,7 @@ export class HomeComponent {
       });
       return;
     }
-
+    ticker = ticker.toUpperCase();
     this.homeService.search(ticker).pipe(
       finalize(() => {
         this.alerts1.push({
